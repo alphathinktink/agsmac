@@ -2,7 +2,7 @@
 /*
   agsmac by Leonard W. Bogard
 
-  created 11/14/2024
+  created 11/13/2024
 */
 
 #include "Arduino_H7_Video.h"
