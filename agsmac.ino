@@ -1,9 +1,8 @@
 
 /*
-  LVGLDemo
+  agsmac by Leonard W. Bogard
 
-  created 17 Apr 2023
-  by Leonardo Cavagnis
+  created 11/14/2024
 */
 
 #include "Arduino_H7_Video.h"
