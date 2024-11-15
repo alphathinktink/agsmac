@@ -10,10 +10,11 @@
 
 #include "lvgl.h"
 
-//#include "KVStore.h"
-//#include "kvstore_global_api.h"
+#include "KVStore.h"
+#include "kvstore_global_api.h"
+#include "mbed.h"
 
-#include <SPI.h>
+//#include <SPI.h>
 #include <WiFi.h>
 
 Arduino_H7_Video          Display(800, 480, GigaDisplayShield); /* Arduino_H7_Video Display(1024, 768, USBCVideo); */
@@ -48,7 +49,7 @@ lv_obj_t * WiFi_WepKeyIndex_lbl=NULL;
 String WiFi_SSID="";
 wl_enc_type WiFi_encryptionType=ENC_TYPE_AUTO;
 String WiFi_Pass="";
-volatile int WiFi_keyIndex=0;
+int WiFi_keyIndex=1;
 volatile int WiFi_status=WL_IDLE_STATUS;
 
 
