@@ -3,6 +3,8 @@
   agsmac by Leonard W. Bogard
 
   created 11/13/2024
+
+  use version 4.1.5 of the [Arduino Mbed OS Giga Boards] library.
 */
 
 #include "Arduino_H7_Video.h"
@@ -24,6 +26,32 @@ WiFiClient WiFi_client;
 
 typedef void (*WiFiConfig2Callback)(bool IsBack,const String &SSID,const String &Pass,int keyIndex);
 typedef void (*WiFiConfig1Callback)(bool IsCancel,const String &SSID,uint8_t encryptionType);
+
+void saveSetting(const String &Key,const String &Val)
+{
+  int ret = kv_set(Key.c_str(), Val.c_str(), Val.length(), 0);
+  if (ret != MBED_SUCCESS) {
+    printf("Failed to save setting\n");
+  } else {
+    printf("Setting saved successfully\n");
+  }
+}
+
+String loadSetting(const String &Key)
+{
+  char buffer[256];  // Adjust size as needed
+  memset(buffer,0,sizeof(buffer));
+  size_t actual_size;
+  int ret = kv_get(Key.c_str(), buffer, sizeof(buffer)-1, &actual_size);
+  if (ret != MBED_SUCCESS) {
+    printf("Failed to load setting\n");
+    return "";
+  } else {
+    printf("Loaded value: %s\n", buffer);
+    String Res=((char *)buffer);
+    return Res;
+  }
+}
 
 struct WiFi_scan_list_parameters
 {
