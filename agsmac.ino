@@ -27,13 +27,13 @@ WiFiClient WiFi_client;
 typedef void (*WiFiConfig2Callback)(bool IsBack,const String &SSID,const String &Pass,int keyIndex);
 typedef void (*WiFiConfig1Callback)(bool IsCancel,const String &SSID,uint8_t encryptionType);
 
-void saveSetting(const String &Key,const String &Val)
+bool saveSetting(const String &Key,const String &Val)
 {
   int ret = kv_set(Key.c_str(), Val.c_str(), Val.length(), 0);
   if (ret != MBED_SUCCESS) {
-    printf("Failed to save setting\n");
+    return false;
   } else {
-    printf("Setting saved successfully\n");
+    return true;
   }
 }
 
@@ -44,10 +44,8 @@ String loadSetting(const String &Key)
   size_t actual_size;
   int ret = kv_get(Key.c_str(), buffer, sizeof(buffer)-1, &actual_size);
   if (ret != MBED_SUCCESS) {
-    printf("Failed to load setting\n");
     return "";
   } else {
-    printf("Loaded value: %s\n", buffer);
     String Res=((char *)buffer);
     return Res;
   }
@@ -576,6 +574,12 @@ void setup() {
 
   WiFi_Config_Display_obj=obj;
   //DisplayWiFiConfig2(obj,false,WiFi_SSID,WiFi_Pass,NULL);
+
+//WiFi_SSID
+  //saveSetting("WiFi_SSID","KGM_Offices");
+  WiFi_SSID=loadSetting("WiFi_SSID");
+  Serial.println(WiFi_SSID);
+
   DisplayWiFiConfig1(obj,WiFi_SSID,WiFi_config1_callback);
 
 }
