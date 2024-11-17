@@ -525,7 +525,10 @@ void DisplayWiFiConfig2(lv_obj_t *obj,uint8_t encryptionType,bool Disable_SSID,c
   lv_obj_add_event_cb(Password_Show_checkbox, (lv_event_cb_t)Password_Show_checkbox_event_cb,LV_EVENT_ALL,NULL);
   lv_obj_add_event_cb(Next_btn,(lv_event_cb_t)Next2_btn_event_cb,LV_EVENT_ALL,NULL);
   lv_obj_add_event_cb(Back_btn,(lv_event_cb_t)Back2_btn_event_cb,LV_EVENT_ALL,NULL);
-  lv_obj_add_event_cb(WiFi_EncType_dd,(lv_event_cb_t)WiFi_EncType_dd_event_cb,LV_EVENT_ALL,NULL);
+  if(!Disable_SSID)
+  {
+    lv_obj_add_event_cb(WiFi_EncType_dd,(lv_event_cb_t)WiFi_EncType_dd_event_cb,LV_EVENT_ALL,NULL);
+  }
 }
 
 void WiFi_config1_callback(bool IsCancel,const String &SSID, uint8_t encryptionType)
@@ -573,7 +576,6 @@ void setup() {
                         LV_GRID_ALIGN_STRETCH, 0, 1);
 
   WiFi_Config_Display_obj=obj;
-  //DisplayWiFiConfig2(obj,false,WiFi_SSID,WiFi_Pass,NULL);
 
 //WiFi_SSID
   //saveSetting("WiFi_SSID","KGM_Offices");
