@@ -87,6 +87,7 @@ void WiFi_config3_callback(bool IsBack,wl_enc_type encryptionType,const String &
   {
     const char * btn_txts[]={"OK",NULL};
     lv_obj_t * mbox=lv_msgbox_create(WiFi_Config_Display_obj, "WiFi Connection", "Failed", btn_txts, false);
+    lv_obj_align_to(mbox,WiFi_Config_Display_obj,LV_ALIGN_CENTER,0,0);
   }
   else
   {
