@@ -643,9 +643,8 @@ void setup() {
   //WiFi_SSID=loadSetting("WiFi_SSID");
   //erial.println(WiFi_SSID);
 
-  //DisplayWiFiConfig1(obj,WiFi_SSID,WiFi_config1_callback);
+  DisplayWiFiConfig1(obj,WiFi_SSID,WiFi_config1_callback);
 
-  DisplayWiFiConfig3(obj,ENC_TYPE_AUTO,"LWBP","YouAreWrong",1,WiFi_config3_callback);
 
 }
 
