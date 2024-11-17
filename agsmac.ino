@@ -5,6 +5,7 @@
   created 11/13/2024
 
   use version 4.1.5 of the [Arduino Mbed OS Giga Boards] library.
+  use version 8.3.11 of the [lvgl] library.
 */
 
 #include "Arduino_H7_Video.h"
@@ -24,8 +25,9 @@ Arduino_GigaDisplayTouch  TouchDetector;
 
 WiFiClient WiFi_client;
 
-typedef void (*WiFiConfig2Callback)(bool IsBack,const String &SSID,const String &Pass,int keyIndex);
-typedef void (*WiFiConfig1Callback)(bool IsCancel,const String &SSID,uint8_t encryptionType);
+typedef void (*WiFiConfig3Callback)(bool IsBack,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex);
+typedef void (*WiFiConfig2Callback)(bool IsBack,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex);
+typedef void (*WiFiConfig1Callback)(bool IsCancel,const String &SSID,wl_enc_type encryptionType);
 
 bool saveSetting(const String &Key,const String &Val)
 {
@@ -54,7 +56,7 @@ String loadSetting(const String &Key)
 struct WiFi_scan_list_parameters
 {
   String SSID;
-  uint8_t encryptionType;
+  wl_enc_type encryptionType;
 };
 const char * EncryptionTypeDisplayStrings[]={"WEP","WPA/TKIP","WPA2/CCMP","WPA3/GCMP","None","Unknown","Auto"};
 const wl_enc_type EncryptionTypeDisplayMap[]={ENC_TYPE_WEP,ENC_TYPE_WPA,ENC_TYPE_WPA2,ENC_TYPE_WPA3,ENC_TYPE_NONE,ENC_TYPE_UNKNOWN,ENC_TYPE_AUTO};
@@ -78,6 +80,19 @@ String WiFi_Pass="";
 int WiFi_keyIndex=1;
 volatile int WiFi_status=WL_IDLE_STATUS;
 
+
+void WiFi_config3_callback(bool IsBack,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex)
+{
+  if(IsBack)
+  {
+    const char * btn_txts[]={"OK",NULL};
+    lv_obj_t * mbox=lv_msgbox_create(WiFi_Config_Display_obj, "WiFi Connection", "Failed", btn_txts, false);
+  }
+  else
+  {
+    lv_obj_clean(WiFi_Config_Display_obj);
+  }
+}
 
 static void WiFi_SSID_ta_event_cb(lv_event_t * event)
 {
@@ -160,7 +175,17 @@ static void Next2_btn_event_cb(lv_event_t * event)
       {
         Pass=lv_textarea_get_text(WiFi_Pass_ta);
       }
-      callback(false,SSID.c_str(),Pass.c_str(),0);
+      int keyIndex=1;
+      if(WiFi_WepKeyIndex_dd!=NULL)
+      {
+        keyIndex=lv_dropdown_get_selected(WiFi_WepKeyIndex_dd)+1;
+      }
+      wl_enc_type encryptionType=ENC_TYPE_AUTO;
+      if(WiFi_EncType_dd!=NULL)
+      {
+        encryptionType=EncryptionTypeDisplayMap[lv_dropdown_get_selected(WiFi_EncType_dd)];
+      }
+      callback(false,encryptionType,SSID.c_str(),Pass.c_str(),keyIndex);
     }
     return;
   }
@@ -187,7 +212,7 @@ static void Back2_btn_event_cb(lv_event_t * event)
       {
         Pass=lv_textarea_get_text(WiFi_Pass_ta);
       }
-      callback(true,SSID.c_str(),Pass.c_str(),0);
+      callback(true,ENC_TYPE_AUTO,SSID.c_str(),Pass.c_str(),0);
     }
     return;
   }
@@ -214,7 +239,7 @@ void DisplayWiFiConfig1_Scan(void)
     if(SSID.isEmpty())continue;
     if(strcmp(SSID.c_str(),"")==0)continue;
     String Caption;
-    uint8_t encryptionType=WiFi.encryptionType(i);
+    wl_enc_type encryptionType=(wl_enc_type)(WiFi.encryptionType(i));
     String EType=EncryptionTypeDisplayStrings[EncryptionTypeToCBIMap[encryptionType]];
     //String EType(encryptionType);
     Caption=SSID+" ["+EType+"]";
@@ -225,7 +250,7 @@ void DisplayWiFiConfig1_Scan(void)
     btn->user_data=(void *)slp;
     lv_obj_add_event_cb(btn,(lv_event_cb_t)WiFi_scan_list_btn_event_cb,LV_EVENT_ALL,NULL);
   }
-  uint8_t encryptionType=0;
+  wl_enc_type encryptionType=(wl_enc_type)0;
   WiFi_scan_list_parameters *slp=new WiFi_scan_list_parameters;
   slp->SSID="";
   slp->encryptionType=encryptionType;
@@ -289,7 +314,7 @@ void WiFi_Back1_btn_event_cb(lv_event_t * event)
     case LV_EVENT_CLICKED:
     if(callback)
     {
-      callback(true,"",0);
+      callback(true,"",ENC_TYPE_AUTO);
     }
     return;
   }
@@ -307,7 +332,7 @@ void WiFi_Next1_btn_event_cb(lv_event_t * event)
     if(callback)
     {
       String SSID=lv_label_get_text(WiFi_SSID_label);
-      int encryptionType=0;
+      wl_enc_type encryptionType=ENC_TYPE_AUTO;
       if(WiFi_scan_current_slp)
       {
         encryptionType=WiFi_scan_current_slp->encryptionType;
@@ -531,7 +556,7 @@ void DisplayWiFiConfig2(lv_obj_t *obj,uint8_t encryptionType,bool Disable_SSID,c
   }
 }
 
-void WiFi_config1_callback(bool IsCancel,const String &SSID, uint8_t encryptionType)
+void WiFi_config1_callback(bool IsCancel,const String &SSID, wl_enc_type encryptionType)
 {
   if(IsCancel)return;
   lv_obj_clean(WiFi_Config_Display_obj);
@@ -543,13 +568,49 @@ void WiFi_config1_callback(bool IsCancel,const String &SSID, uint8_t encryptionT
   DisplayWiFiConfig2(WiFi_Config_Display_obj,encryptionType,DontNeedSSID,SSID,"",1,WiFi_config2_callback);
 }
 
-void WiFi_config2_callback(bool IsBack,const String &SSID,const String &Pass,int keyIndex)
+void WiFi_config2_callback(bool IsBack,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex)
 {
   if(IsBack)
   {
     lv_obj_clean(WiFi_Config_Display_obj);
     DisplayWiFiConfig1(WiFi_Config_Display_obj,WiFi_SSID,WiFi_config1_callback);
     return;
+  }
+  else
+  {
+    lv_obj_clean(WiFi_Config_Display_obj);
+    DisplayWiFiConfig3(WiFi_Config_Display_obj,encryptionType,SSID,Pass,keyIndex,WiFi_config3_callback);
+    return;
+  }
+}
+
+void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int KeyIndex,WiFiConfig3Callback callback)
+{
+  lv_obj_t * label;
+
+  lv_obj_t * WiFi_wait_sp=lv_spinner_create(obj,800,240);
+  lv_obj_align_to(WiFi_wait_sp,obj,LV_ALIGN_CENTER,0,0);
+
+  if(WiFi_client.connected())
+  {
+    WiFi_client.stop();
+  }
+
+  WiFi.disconnect();
+  WiFi_status=WiFi.begin(SSID.c_str(),Pass.c_str(),encryptionType);
+  if(WiFi_status!=WL_CONNECTED)
+  {
+    if(callback)
+    {
+      callback(true,(wl_enc_type)0,"","",1);
+    }
+  }
+  else
+  {
+    if(callback)
+    {
+      callback(false,encryptionType,SSID,Pass,KeyIndex);
+    }
   }
 }
 
@@ -579,10 +640,12 @@ void setup() {
 
 //WiFi_SSID
   //saveSetting("WiFi_SSID","KGM_Offices");
-  WiFi_SSID=loadSetting("WiFi_SSID");
-  Serial.println(WiFi_SSID);
+  //WiFi_SSID=loadSetting("WiFi_SSID");
+  //erial.println(WiFi_SSID);
 
-  DisplayWiFiConfig1(obj,WiFi_SSID,WiFi_config1_callback);
+  //DisplayWiFiConfig1(obj,WiFi_SSID,WiFi_config1_callback);
+
+  DisplayWiFiConfig3(obj,ENC_TYPE_AUTO,"LWBP","YouAreWrong",1,WiFi_config3_callback);
 
 }
 
