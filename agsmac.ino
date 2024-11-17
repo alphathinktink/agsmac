@@ -25,9 +25,9 @@ Arduino_GigaDisplayTouch  TouchDetector;
 
 WiFiClient WiFi_client;
 
-typedef void (*WiFiConfig3Callback)(bool IsBack,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex);
-typedef void (*WiFiConfig2Callback)(bool IsBack,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex);
-typedef void (*WiFiConfig1Callback)(bool IsCancel,const String &SSID,wl_enc_type encryptionType);
+typedef void (*WiFiConfig3Callback)(bool IsBack);
+typedef void (*WiFiConfig2Callback)(bool IsBack);
+typedef void (*WiFiConfig1Callback)(bool IsCancel);
 
 bool saveSetting(const String &Key,const String &Val)
 {
@@ -80,14 +80,15 @@ String WiFi_Pass="";
 int WiFi_keyIndex=1;
 volatile int WiFi_status=WL_IDLE_STATUS;
 
+wl_enc_type WiFi_ConfigTemp_encryptionType=ENC_TYPE_AUTO;
+String WiFi_ConfigTemp_SSID="";
+String WiFi_ConfigTemp_Pass="";
+int WiFi_ConfigTemp_keyIndex=1;
 
-void WiFi_config3_callback(bool IsBack,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex)
+
+void WiFi_config3_callback(bool IsBack)
 {
   lv_obj_clean(WiFi_Config_Display_obj);
-  Serial.println(encryptionType);
-  Serial.println(SSID);
-  Serial.println(Pass);
-  Serial.println(keyIndex);
   if(IsBack)
   {
     const char * btn_txts[]={"Abort","Start Over",NULL};
@@ -175,27 +176,24 @@ static void Next2_btn_event_cb(lv_event_t * event)
     if(user_data)
     {
       WiFiConfig2Callback callback=(WiFiConfig2Callback)user_data;
-      String SSID="";
       if(WiFi_SSID_ta!=NULL)
       {
-        SSID=lv_textarea_get_text(WiFi_SSID_ta);
+        WiFi_ConfigTemp_SSID=lv_textarea_get_text(WiFi_SSID_ta);
       }
-      String Pass="";
       if(WiFi_Pass_ta!=NULL)
       {
-        Pass=lv_textarea_get_text(WiFi_Pass_ta);
+        WiFi_ConfigTemp_Pass=lv_textarea_get_text(WiFi_Pass_ta);
       }
-      int keyIndex=1;
       if(WiFi_WepKeyIndex_dd!=NULL)
       {
-        keyIndex=lv_dropdown_get_selected(WiFi_WepKeyIndex_dd)+1;
+        WiFi_ConfigTemp_keyIndex=lv_dropdown_get_selected(WiFi_WepKeyIndex_dd)+1;
       }
       wl_enc_type encryptionType=ENC_TYPE_AUTO;
       if(WiFi_EncType_dd!=NULL)
       {
-        encryptionType=EncryptionTypeDisplayMap[lv_dropdown_get_selected(WiFi_EncType_dd)];
+        WiFi_ConfigTemp_encryptionType=EncryptionTypeDisplayMap[lv_dropdown_get_selected(WiFi_EncType_dd)];
       }
-      callback(false,encryptionType,SSID.c_str(),Pass.c_str(),keyIndex);
+      callback(false);
     }
     return;
   }
@@ -212,17 +210,12 @@ static void Back2_btn_event_cb(lv_event_t * event)
     if(user_data)
     {
       WiFiConfig2Callback callback=(WiFiConfig2Callback)user_data;
-      String SSID="";
       if(WiFi_SSID_ta!=NULL)
       {
-        SSID=lv_textarea_get_text(WiFi_SSID_ta);
+        WiFi_ConfigTemp_SSID=lv_textarea_get_text(WiFi_SSID_ta);
       }
-      String Pass="";
-      if(WiFi_Pass_ta!=NULL)
-      {
-        Pass=lv_textarea_get_text(WiFi_Pass_ta);
-      }
-      callback(true,ENC_TYPE_AUTO,SSID.c_str(),Pass.c_str(),0);
+      WiFi_ConfigTemp_Pass="";
+      callback(true);
     }
     return;
   }
@@ -324,7 +317,11 @@ void WiFi_Back1_btn_event_cb(lv_event_t * event)
     case LV_EVENT_CLICKED:
     if(callback)
     {
-      callback(true,"",ENC_TYPE_AUTO);
+      WiFi_ConfigTemp_encryptionType=ENC_TYPE_AUTO;
+      WiFi_ConfigTemp_SSID="";
+      WiFi_ConfigTemp_Pass="";
+      WiFi_ConfigTemp_keyIndex=0;
+      callback(true);
     }
     return;
   }
@@ -347,7 +344,9 @@ void WiFi_Next1_btn_event_cb(lv_event_t * event)
       {
         encryptionType=WiFi_scan_current_slp->encryptionType;
       }
-      callback(false,SSID,encryptionType);
+      WiFi_ConfigTemp_SSID=SSID;
+      WiFi_ConfigTemp_encryptionType=encryptionType;
+      callback(false);
     }
     return;
   }
@@ -471,6 +470,7 @@ void DisplayWiFiConfig2(lv_obj_t *obj,uint8_t encryptionType,bool Disable_SSID,c
   else
   {
     WiFi_SSID_ta=NULL;
+    WiFi_EncType_dd=NULL;
   }
   
   label=lv_label_create(obj);
@@ -566,19 +566,19 @@ void DisplayWiFiConfig2(lv_obj_t *obj,uint8_t encryptionType,bool Disable_SSID,c
   }
 }
 
-void WiFi_config1_callback(bool IsCancel,const String &SSID, wl_enc_type encryptionType)
+void WiFi_config1_callback(bool IsCancel)
 {
   if(IsCancel)return;
   lv_obj_clean(WiFi_Config_Display_obj);
   bool DontNeedSSID=true;
-  if(SSID.isEmpty() || strcmp(SSID.c_str(),"")==0)
+  if(WiFi_ConfigTemp_SSID.isEmpty() || strcmp(WiFi_ConfigTemp_SSID.c_str(),"")==0)
   {
     DontNeedSSID=false;
   }
-  DisplayWiFiConfig2(WiFi_Config_Display_obj,encryptionType,DontNeedSSID,SSID,"",1,WiFi_config2_callback);
+  DisplayWiFiConfig2(WiFi_Config_Display_obj,WiFi_ConfigTemp_encryptionType,DontNeedSSID,WiFi_ConfigTemp_SSID,"",1,WiFi_config2_callback);
 }
 
-void WiFi_config2_callback(bool IsBack,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex)
+void WiFi_config2_callback(bool IsBack)
 {
   if(IsBack)
   {
@@ -589,12 +589,12 @@ void WiFi_config2_callback(bool IsBack,wl_enc_type encryptionType,const String &
   else
   {
     lv_obj_clean(WiFi_Config_Display_obj);
-    DisplayWiFiConfig3(WiFi_Config_Display_obj,encryptionType,SSID,Pass,keyIndex,WiFi_config3_callback);
+    DisplayWiFiConfig3(WiFi_Config_Display_obj,WiFi_ConfigTemp_encryptionType,WiFi_ConfigTemp_SSID,WiFi_ConfigTemp_Pass,WiFi_ConfigTemp_keyIndex,WiFi_config3_callback);
     return;
   }
 }
 
-void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int KeyIndex,WiFiConfig3Callback callback)
+void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex,WiFiConfig3Callback callback)
 {
   lv_obj_t * label;
 
@@ -612,14 +612,14 @@ void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &S
   {
     if(callback)
     {
-      callback(true,(wl_enc_type)0,"","",1);
+      callback(true);
     }
   }
   else
   {
     if(callback)
     {
-      callback(false,encryptionType,SSID,Pass,KeyIndex);
+      callback(false);
     }
   }
 }
