@@ -84,6 +84,10 @@ volatile int WiFi_status=WL_IDLE_STATUS;
 void WiFi_config3_callback(bool IsBack,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex)
 {
   lv_obj_clean(WiFi_Config_Display_obj);
+  Serial.println(encryptionType);
+  Serial.println(SSID);
+  Serial.println(Pass);
+  Serial.println(keyIndex);
   if(IsBack)
   {
     const char * btn_txts[]={"Abort","Start Over",NULL};
@@ -93,7 +97,7 @@ void WiFi_config3_callback(bool IsBack,wl_enc_type encryptionType,const String &
   }
   else
   {
-    const char * btn_txts[]={"OK","Abort","Start Over",NULL};
+    const char * btn_txts[]={"Apply","Abort","Start Over",NULL};
     lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Success", btn_txts, false);
     //lv_obj_align_to(mbox,WiFi_Config_Display_obj,LV_ALIGN_CENTER,0,0);
     lv_obj_center(mbox);
