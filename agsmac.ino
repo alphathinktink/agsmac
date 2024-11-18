@@ -86,22 +86,43 @@ String WiFi_ConfigTemp_Pass="";
 int WiFi_ConfigTemp_keyIndex=1;
 
 
+void WiFi_config3_callback_mbox_event_cb(lv_event_t * event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t *target=lv_event_get_target(event);
+  void *user_data=target->user_data;
+
+}
+
 void WiFi_config3_callback(bool IsBack)
 {
+  Serial.println(__LINE__);
+  lv_refr_now(NULL);
+  Serial.println(__LINE__);
   lv_obj_clean(WiFi_Config_Display_obj);
   if(IsBack)
   {
+    Serial.println(__LINE__);
     const char * btn_txts[]={"Abort","Start Over",NULL};
-    lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Failed", btn_txts, false);
-    //lv_obj_align_to(mbox,WiFi_Config_Display_obj,LV_ALIGN_CENTER,0,0);
+    Serial.println(__LINE__);
+    lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Failed", btn_txts, true);
+    Serial.println(__LINE__);
     lv_obj_center(mbox);
+    Serial.println(__LINE__);
+    lv_obj_add_event_cb(mbox,WiFi_config3_callback_mbox_event_cb,LV_EVENT_ALL,NULL);
+    Serial.println(__LINE__);
   }
   else
   {
+    Serial.println(__LINE__);
     const char * btn_txts[]={"Apply","Abort","Start Over",NULL};
-    lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Success", btn_txts, false);
-    //lv_obj_align_to(mbox,WiFi_Config_Display_obj,LV_ALIGN_CENTER,0,0);
+    Serial.println(__LINE__);
+    lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Success", btn_txts, true);
+    Serial.println(__LINE__);
     lv_obj_center(mbox);
+    Serial.println(__LINE__);
+    lv_obj_add_event_cb(mbox,WiFi_config3_callback_mbox_event_cb,LV_EVENT_ALL,NULL);
+    Serial.println(__LINE__);
   }
 }
 
@@ -589,7 +610,9 @@ void WiFi_config2_callback(bool IsBack)
   else
   {
     lv_obj_clean(WiFi_Config_Display_obj);
+    lv_refr_now(NULL);
     DisplayWiFiConfig3(WiFi_Config_Display_obj,WiFi_ConfigTemp_encryptionType,WiFi_ConfigTemp_SSID,WiFi_ConfigTemp_Pass,WiFi_ConfigTemp_keyIndex,WiFi_config3_callback);
+  Serial.println(__LINE__);
     return;
   }
 }
@@ -598,20 +621,30 @@ void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &S
 {
   lv_obj_t * label;
 
+  Serial.println(__LINE__);
   lv_obj_t * WiFi_wait_sp=lv_spinner_create(obj,800,240);
+  Serial.println(__LINE__);
   lv_obj_align_to(WiFi_wait_sp,obj,LV_ALIGN_CENTER,0,0);
+  Serial.println(__LINE__);
+  lv_refr_now(NULL);
+  Serial.println(__LINE__);
 
   if(WiFi_client.connected())
   {
+  Serial.println(__LINE__);
     WiFi_client.stop();
   }
 
+  Serial.println(__LINE__);
   WiFi.disconnect();
+  Serial.println(__LINE__);
   WiFi_status=WiFi.begin(SSID.c_str(),Pass.c_str(),encryptionType);
+  Serial.println(__LINE__);
   if(WiFi_status!=WL_CONNECTED)
   {
     if(callback)
     {
+  Serial.println(__LINE__);
       callback(true);
     }
   }
@@ -619,9 +652,11 @@ void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &S
   {
     if(callback)
     {
+  Serial.println(__LINE__);
       callback(false);
     }
   }
+  Serial.println(__LINE__);
 }
 
 void setup() {
@@ -654,7 +689,6 @@ void setup() {
   //erial.println(WiFi_SSID);
 
   DisplayWiFiConfig1(obj,WiFi_SSID,WiFi_config1_callback);
-
 
 }
 
