@@ -29,6 +29,8 @@ typedef void (*WiFiConfig3Callback)(bool IsBack);
 typedef void (*WiFiConfig2Callback)(bool IsBack);
 typedef void (*WiFiConfig1Callback)(bool IsCancel);
 
+static String Debug_EventCodeToString(lv_event_code_t code);
+
 bool saveSetting(const String &Key,const String &Val)
 {
   int ret = kv_set(Key.c_str(), Val.c_str(), Val.length(), 0);
@@ -89,40 +91,56 @@ int WiFi_ConfigTemp_keyIndex=1;
 void WiFi_config3_callback_mbox_event_cb(lv_event_t * event)
 {
   lv_event_code_t code = lv_event_get_code(event);
-  lv_obj_t *target=lv_event_get_target(event);
+  lv_obj_t *target=lv_event_get_target(event);//button matrix
+  lv_obj_t *current_target=lv_event_get_current_target(event);
   void *user_data=target->user_data;
+  void *current_user_data=current_target->user_data;
 
+  Serial.print("code: ");
+  Serial.println(code);
+  Serial.println(Debug_EventCodeToString(code));
+  Serial.print("target: ");
+  Serial.println((uint32_t)target);
+  Serial.print("current_target: ");
+  Serial.println((uint32_t)current_target);
+  Serial.print("user_data: ");
+  Serial.println((uint32_t)user_data);
+  Serial.print("current_user_data: ");
+  Serial.println((uint32_t)current_user_data);
+
+  switch(code)
+  {
+    case LV_EVENT_VALUE_CHANGED:
+    if(current_target!=target)
+    {
+      uint32_t id=lv_btnmatrix_get_selected_btn(target);
+      Serial.print("Current Button Idx: ");
+      Serial.println(id);
+    }
+    break;
+  }
+  Serial.println("---------------------");
 }
 
 void WiFi_config3_callback(bool IsBack)
 {
-  Serial.println(__LINE__);
   lv_refr_now(NULL);
-  Serial.println(__LINE__);
   lv_obj_clean(WiFi_Config_Display_obj);
   if(IsBack)
   {
-    Serial.println(__LINE__);
-    const char * btn_txts[]={"Abort","Start Over",NULL};
-    Serial.println(__LINE__);
-    lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Failed", btn_txts, true);
-    Serial.println(__LINE__);
+    static const char * btnsF[]={"Abort","Start Over",""};
+    lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Failed", btnsF, true);
+    lv_obj_t * lv_mbox_btns=lv_msgbox_get_btns(mbox);
     lv_obj_center(mbox);
-    Serial.println(__LINE__);
-    lv_obj_add_event_cb(mbox,WiFi_config3_callback_mbox_event_cb,LV_EVENT_ALL,NULL);
-    Serial.println(__LINE__);
+    lv_obj_add_event_cb(mbox,WiFi_config3_callback_mbox_event_cb,LV_EVENT_VALUE_CHANGED/*LV_EVENT_ALL*/,NULL);
   }
   else
   {
-    Serial.println(__LINE__);
-    const char * btn_txts[]={"Apply","Abort","Start Over",NULL};
-    Serial.println(__LINE__);
-    lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Success", btn_txts, true);
-    Serial.println(__LINE__);
+    static const char * btnsS[]={"Abort","Start Over","Apply",""};
+    lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Success", btnsS, true);
+    lv_obj_t * lv_mbox_btns=lv_msgbox_get_btns(mbox);
     lv_obj_center(mbox);
-    Serial.println(__LINE__);
-    lv_obj_add_event_cb(mbox,WiFi_config3_callback_mbox_event_cb,LV_EVENT_ALL,NULL);
-    Serial.println(__LINE__);
+    lv_obj_add_event_cb(mbox,WiFi_config3_callback_mbox_event_cb,LV_EVENT_VALUE_CHANGED/*LV_EVENT_ALL*/,NULL);
   }
 }
 
@@ -612,7 +630,6 @@ void WiFi_config2_callback(bool IsBack)
     lv_obj_clean(WiFi_Config_Display_obj);
     lv_refr_now(NULL);
     DisplayWiFiConfig3(WiFi_Config_Display_obj,WiFi_ConfigTemp_encryptionType,WiFi_ConfigTemp_SSID,WiFi_ConfigTemp_Pass,WiFi_ConfigTemp_keyIndex,WiFi_config3_callback);
-  Serial.println(__LINE__);
     return;
   }
 }
@@ -621,30 +638,22 @@ void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &S
 {
   lv_obj_t * label;
 
-  Serial.println(__LINE__);
   lv_obj_t * WiFi_wait_sp=lv_spinner_create(obj,800,240);
-  Serial.println(__LINE__);
   lv_obj_align_to(WiFi_wait_sp,obj,LV_ALIGN_CENTER,0,0);
-  Serial.println(__LINE__);
   lv_refr_now(NULL);
-  Serial.println(__LINE__);
 
   if(WiFi_client.connected())
   {
-  Serial.println(__LINE__);
     WiFi_client.stop();
   }
 
-  Serial.println(__LINE__);
   WiFi.disconnect();
-  Serial.println(__LINE__);
   WiFi_status=WiFi.begin(SSID.c_str(),Pass.c_str(),encryptionType);
-  Serial.println(__LINE__);
+  lv_refr_now(NULL);
   if(WiFi_status!=WL_CONNECTED)
   {
     if(callback)
     {
-  Serial.println(__LINE__);
       callback(true);
     }
   }
@@ -652,11 +661,9 @@ void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &S
   {
     if(callback)
     {
-  Serial.println(__LINE__);
       callback(false);
     }
   }
-  Serial.println(__LINE__);
 }
 
 void setup() {
@@ -697,3 +704,57 @@ void loop() {
   lv_timer_handler();
 }
 
+static String Debug_EventCodeToString(lv_event_code_t code)
+{
+  String Res="Unknown";
+  #define narf(x) case x: Res=#x; break;
+  switch(code)
+  {
+    narf(LV_EVENT_PRESSED)
+    narf(LV_EVENT_PRESSING)
+    narf(LV_EVENT_PRESS_LOST)
+    narf(LV_EVENT_SHORT_CLICKED)
+    narf(LV_EVENT_LONG_PRESSED)
+    narf(LV_EVENT_LONG_PRESSED_REPEAT)
+    narf(LV_EVENT_CLICKED)
+    narf(LV_EVENT_RELEASED)
+    narf(LV_EVENT_SCROLL_BEGIN)
+    narf(LV_EVENT_SCROLL_END)
+    narf(LV_EVENT_SCROLL)
+    narf(LV_EVENT_GESTURE)
+    narf(LV_EVENT_KEY)
+    narf(LV_EVENT_FOCUSED)
+    narf(LV_EVENT_DEFOCUSED)
+    narf(LV_EVENT_LEAVE)
+    narf(LV_EVENT_HIT_TEST)
+    narf(LV_EVENT_COVER_CHECK)
+    narf(LV_EVENT_REFR_EXT_DRAW_SIZE)
+    narf(LV_EVENT_DRAW_MAIN_BEGIN)
+    narf(LV_EVENT_DRAW_MAIN)
+    narf(LV_EVENT_DRAW_MAIN_END)
+    narf(LV_EVENT_DRAW_POST_BEGIN)
+    narf(LV_EVENT_DRAW_POST)
+    narf(LV_EVENT_DRAW_POST_END)
+    narf(LV_EVENT_DRAW_PART_BEGIN)
+    narf(LV_EVENT_DRAW_PART_END)
+    narf(LV_EVENT_VALUE_CHANGED)
+    narf(LV_EVENT_INSERT)
+    narf(LV_EVENT_REFRESH)
+    narf(LV_EVENT_READY)
+    narf(LV_EVENT_CANCEL)
+    narf(LV_EVENT_DELETE)
+    narf(LV_EVENT_CHILD_CHANGED)
+    narf(LV_EVENT_CHILD_CREATED)
+    narf(LV_EVENT_CHILD_DELETED)
+    narf(LV_EVENT_SCREEN_UNLOAD_START)
+    narf(LV_EVENT_SCREEN_LOAD_START)
+    narf(LV_EVENT_SCREEN_LOADED)
+    narf(LV_EVENT_SCREEN_UNLOADED)
+    narf(LV_EVENT_SIZE_CHANGED)
+    narf(LV_EVENT_STYLE_CHANGED)
+    narf(LV_EVENT_LAYOUT_CHANGED)
+    narf(LV_EVENT_GET_SELF_SIZE)
+  }
+  #undef narf
+  return Res;
+}
