@@ -25,7 +25,7 @@ Arduino_GigaDisplayTouch  TouchDetector;
 
 WiFiClient WiFi_client;
 
-typedef void (*WiFiConfig3Callback)(bool IsBack);
+typedef void (*WiFiConfig4Callback)(bool IsBack);
 typedef void (*WiFiConfig2Callback)(bool IsBack);
 typedef void (*WiFiConfig1Callback)(bool IsCancel);
 
@@ -88,7 +88,7 @@ String WiFi_ConfigTemp_Pass="";
 int WiFi_ConfigTemp_keyIndex=1;
 
 
-void WiFi_config3_callback_mbox_event_cb(lv_event_t * event)
+void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
 {
   lv_event_code_t code = lv_event_get_code(event);
   lv_obj_t *target=lv_event_get_target(event);//button matrix
@@ -122,7 +122,7 @@ void WiFi_config3_callback_mbox_event_cb(lv_event_t * event)
   Serial.println("---------------------");
 }
 
-void WiFi_config3_callback(bool IsBack)
+void WiFi_config4_callback(bool IsBack)
 {
   lv_refr_now(NULL);
   lv_obj_clean(WiFi_Config_Display_obj);
@@ -132,7 +132,7 @@ void WiFi_config3_callback(bool IsBack)
     lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Failed", btnsF, true);
     lv_obj_t * lv_mbox_btns=lv_msgbox_get_btns(mbox);
     lv_obj_center(mbox);
-    lv_obj_add_event_cb(mbox,WiFi_config3_callback_mbox_event_cb,LV_EVENT_VALUE_CHANGED/*LV_EVENT_ALL*/,NULL);
+    lv_obj_add_event_cb(mbox,WiFi_config4_callback_mbox_event_cb,LV_EVENT_VALUE_CHANGED/*LV_EVENT_ALL*/,NULL);
   }
   else
   {
@@ -140,7 +140,7 @@ void WiFi_config3_callback(bool IsBack)
     lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Success", btnsS, true);
     lv_obj_t * lv_mbox_btns=lv_msgbox_get_btns(mbox);
     lv_obj_center(mbox);
-    lv_obj_add_event_cb(mbox,WiFi_config3_callback_mbox_event_cb,LV_EVENT_VALUE_CHANGED/*LV_EVENT_ALL*/,NULL);
+    lv_obj_add_event_cb(mbox,WiFi_config4_callback_mbox_event_cb,LV_EVENT_VALUE_CHANGED/*LV_EVENT_ALL*/,NULL);
   }
 }
 
@@ -629,12 +629,12 @@ void WiFi_config2_callback(bool IsBack)
   {
     lv_obj_clean(WiFi_Config_Display_obj);
     lv_refr_now(NULL);
-    DisplayWiFiConfig3(WiFi_Config_Display_obj,WiFi_ConfigTemp_encryptionType,WiFi_ConfigTemp_SSID,WiFi_ConfigTemp_Pass,WiFi_ConfigTemp_keyIndex,WiFi_config3_callback);
+    DisplayWiFiConfig4(WiFi_Config_Display_obj,WiFi_ConfigTemp_encryptionType,WiFi_ConfigTemp_SSID,WiFi_ConfigTemp_Pass,WiFi_ConfigTemp_keyIndex,WiFi_config4_callback);
     return;
   }
 }
 
-void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex,WiFiConfig3Callback callback)
+void DisplayWiFiConfig4(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex,WiFiConfig4Callback callback)
 {
   lv_obj_t * label;
 
@@ -666,6 +666,35 @@ void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &S
   }
 }
 
+void MainStatus_WiFiConfig_btn_event_cb(lv_event_t * event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t *target=lv_event_get_target(event);//button matrix
+  lv_obj_t *current_target=lv_event_get_current_target(event);
+  void *user_data=target->user_data;
+  void *current_user_data=current_target->user_data;
+  switch(code)
+  {
+    case LV_EVENT_CLICKED:
+    DisplayWiFiConfig1(WiFi_Config_Display_obj,WiFi_SSID,WiFi_config1_callback);
+    return;
+  }
+
+}
+
+void DisplayMainStatusPanel(lv_obj_t *obj)
+{
+  lv_obj_clean(obj);
+
+  lv_obj_t *label;
+
+
+  lv_obj_t *lv_WiFiConfig_btn=lv_btn_create(obj);
+  label=lv_label_create(lv_WiFiConfig_btn);
+  lv_label_set_text(label,"WiFi Config");
+  lv_obj_add_event_cb(lv_WiFiConfig_btn,MainStatus_WiFiConfig_btn_event_cb,LV_EVENT_ALL,NULL);
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -695,7 +724,8 @@ void setup() {
   //WiFi_SSID=loadSetting("WiFi_SSID");
   //erial.println(WiFi_SSID);
 
-  DisplayWiFiConfig1(obj,WiFi_SSID,WiFi_config1_callback);
+  //DisplayWiFiConfig1(obj,WiFi_SSID,WiFi_config1_callback);
+  DisplayMainStatusPanel(obj);
 
 }
 
