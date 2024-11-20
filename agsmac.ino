@@ -153,12 +153,25 @@ void WiFi_config4_callback(bool IsBack)
 {
   lv_refr_now(NULL);
   lv_obj_clean(WiFi_Config_Display_obj);
+  lv_obj_t *ip_info_table=lv_table_create(WiFi_Config_Display_obj);
+  #define narf(t,r) lv_table_set_cell_value(ip_info_table,r,0,t);
+  narf("Mac Address",0);
+  narf("IP",1);
+  narf("Netmask",2);
+  narf("Gateway",3);
+  #undef narf
+  #define narf(t,r) lv_table_set_cell_value(ip_info_table,r,1,t);
+  narf(WiFi.macAddress().toUpperCase().c_str(),0);
+  narf(WiFi.localIP().toString().c_str(),1);
+  narf(WiFi.subnetMask().toString().c_str(),2);
+  narf(WiFi.gatewayIP().toString().c_str(),3);
+  #undef narf
   if(IsBack)
   {
     static const char * btnsF[]={"Abort","Start Over",""};
     lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Failed", btnsF, true);
     lv_obj_t * lv_mbox_btns=lv_msgbox_get_btns(mbox);
-    lv_obj_center(mbox);
+    lv_obj_set_align(mbox,LV_ALIGN_RIGHT_MID);
     lv_obj_add_event_cb(mbox,WiFi_config4_callback_mbox_event_cb,LV_EVENT_VALUE_CHANGED/*LV_EVENT_ALL*/,NULL);
   }
   else
@@ -166,7 +179,7 @@ void WiFi_config4_callback(bool IsBack)
     static const char * btnsS[]={"Abort","Start Over","Apply",""};
     lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Success", btnsS, true);
     lv_obj_t * lv_mbox_btns=lv_msgbox_get_btns(mbox);
-    lv_obj_center(mbox);
+    lv_obj_set_align(mbox,LV_ALIGN_RIGHT_MID);
     lv_obj_add_event_cb(mbox,WiFi_config4_callback_mbox_event_cb,LV_EVENT_VALUE_CHANGED/*LV_EVENT_ALL*/,NULL);
   }
 }
