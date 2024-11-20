@@ -954,8 +954,28 @@ void setup() {
 
   //DisplayWiFiConfig1(obj,WiFi_SSID,WiFi_config1_callback);
 
-  DisplayMainStatusPanel(obj);
+  //DisplayMainStatusPanel(obj);
 
+  WiFi_ConfigTemp_encryptionType=ENC_TYPE_AUTO;
+  WiFi_ConfigTemp_SSID="Random";
+  WiFi_ConfigTemp_Pass="Random";
+  WiFi_ConfigTemp_keyIndex=1;
+  WiFi_ConfigTemp_IP_Method=WiFi_IP_Method_Static;
+  WiFi_ConfigTemp_Static_IP="10.1.10.179";
+  WiFi_ConfigTemp_Static_Netmask="255.255.255.0";
+  WiFi_ConfigTemp_Static_Gateway="10.1.10.1";
+  WiFi_ConfigTemp_Static_DNS="";
+  DisplayWiFiConfig3(WiFi_Config_Display_obj,WiFi_IP_Method_Static,"10.1.10.179","255.255.255.0","10.1.10.1",WiFi_config3_callback);
+  //DisplayWiFiConfig2(WiFi_Config_Display_obj,WiFi_ConfigTemp_encryptionType,true,"Random","Random",1,WiFi_config2_callback);
+  WiFi_ConfigTemp_encryptionType=ENC_TYPE_AUTO;
+  WiFi_ConfigTemp_SSID="Random";
+  WiFi_ConfigTemp_Pass="Random";
+  WiFi_ConfigTemp_keyIndex=1;
+  WiFi_ConfigTemp_IP_Method=WiFi_IP_Method_Static;
+  WiFi_ConfigTemp_Static_IP="10.1.10.179";
+  WiFi_ConfigTemp_Static_Netmask="255.255.255.0";
+  WiFi_ConfigTemp_Static_Gateway="10.1.10.1";
+  WiFi_ConfigTemp_Static_DNS="";
 }
 
 void loop() { 
