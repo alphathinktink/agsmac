@@ -81,6 +81,11 @@ wl_enc_type WiFi_encryptionType=ENC_TYPE_AUTO;
 String WiFi_Pass="";
 int WiFi_keyIndex=1;
 volatile int WiFi_status=WL_IDLE_STATUS;
+enum WiFi_IP_Method_enum_t{WiFi_IP_Method_DHCP,WiFi_IP_Method_Static};
+WiFi_IP_Method_enum_t WiFi_IP_Method=WiFi_IP_Method_DHCP;
+String WiFi_Static_IP="";
+String WiFi_Static_Subnet="";
+String WiFi_Static_Gateway="";
 
 wl_enc_type WiFi_ConfigTemp_encryptionType=ENC_TYPE_AUTO;
 String WiFi_ConfigTemp_SSID="";
@@ -116,6 +121,21 @@ void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
       uint32_t id=lv_btnmatrix_get_selected_btn(target);
       Serial.print("Current Button Idx: ");
       Serial.println(id);
+      switch(id)
+      {
+        case 0://Abort
+        lv_msgbox_close(current_target);
+        DisplayMainStatusPanel(WiFi_Config_Display_obj);
+        return;
+        case 1://Start Over
+        lv_msgbox_close(current_target);
+        lv_obj_clean(WiFi_Config_Display_obj);
+        DisplayWiFiConfig1(WiFi_Config_Display_obj,WiFi_SSID,WiFi_config1_callback);
+        return;
+        case 2://Apply
+        lv_msgbox_close(current_target);
+        break;
+      }
     }
     break;
   }
@@ -607,7 +627,11 @@ void DisplayWiFiConfig2(lv_obj_t *obj,uint8_t encryptionType,bool Disable_SSID,c
 
 void WiFi_config1_callback(bool IsCancel)
 {
-  if(IsCancel)return;
+  if(IsCancel)
+  {
+    DisplayMainStatusPanel(WiFi_Config_Display_obj);
+    return;
+  }
   lv_obj_clean(WiFi_Config_Display_obj);
   bool DontNeedSSID=true;
   if(WiFi_ConfigTemp_SSID.isEmpty() || strcmp(WiFi_ConfigTemp_SSID.c_str(),"")==0)
