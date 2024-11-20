@@ -26,8 +26,10 @@ Arduino_GigaDisplayTouch  TouchDetector;
 WiFiClient WiFi_client;
 
 typedef void (*WiFiConfig4Callback)(bool IsBack);
+typedef void (*WiFiConfig3Callback)(bool IsBack);
 typedef void (*WiFiConfig2Callback)(bool IsBack);
 typedef void (*WiFiConfig1Callback)(bool IsCancel);
+enum WiFi_IP_Method_enum_t{WiFi_IP_Method_DHCP,WiFi_IP_Method_Static};
 
 static String Debug_EventCodeToString(lv_event_code_t code);
 
@@ -81,16 +83,21 @@ wl_enc_type WiFi_encryptionType=ENC_TYPE_AUTO;
 String WiFi_Pass="";
 int WiFi_keyIndex=1;
 volatile int WiFi_status=WL_IDLE_STATUS;
-enum WiFi_IP_Method_enum_t{WiFi_IP_Method_DHCP,WiFi_IP_Method_Static};
 WiFi_IP_Method_enum_t WiFi_IP_Method=WiFi_IP_Method_DHCP;
 String WiFi_Static_IP="";
 String WiFi_Static_Subnet="";
 String WiFi_Static_Gateway="";
+String WiFi_Static_DNS="";
 
 wl_enc_type WiFi_ConfigTemp_encryptionType=ENC_TYPE_AUTO;
 String WiFi_ConfigTemp_SSID="";
 String WiFi_ConfigTemp_Pass="";
 int WiFi_ConfigTemp_keyIndex=1;
+WiFi_IP_Method_enum_t WiFi_ConfigTemp_IP_Method=WiFi_IP_Method_DHCP;
+String WiFi_ConfigTemp_Static_IP="";
+String WiFi_ConfigTemp_Static_Subnet="";
+String WiFi_ConfigTemp_Static_Gateway="";
+String WiFi_ConfigTemp_Static_DNS="";
 
 
 void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
@@ -656,6 +663,12 @@ void WiFi_config2_callback(bool IsBack)
     DisplayWiFiConfig4(WiFi_Config_Display_obj,WiFi_ConfigTemp_encryptionType,WiFi_ConfigTemp_SSID,WiFi_ConfigTemp_Pass,WiFi_ConfigTemp_keyIndex,WiFi_config4_callback);
     return;
   }
+}
+
+void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex,WiFi_IP_Method_enum_t IP_Method,const String &Static_IP,const String &Static_Subnet,const String Static_Gateway,WiFiConfig3Callback callback)
+{
+  lv_obt_t *label;
+  WiFi.config
 }
 
 void DisplayWiFiConfig4(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex,WiFiConfig4Callback callback)
