@@ -85,7 +85,7 @@ int WiFi_keyIndex=1;
 volatile int WiFi_status=WL_IDLE_STATUS;
 WiFi_IP_Method_enum_t WiFi_IP_Method=WiFi_IP_Method_DHCP;
 String WiFi_Static_IP="";
-String WiFi_Static_Subnet="";
+String WiFi_Static_Netmask="";
 String WiFi_Static_Gateway="";
 String WiFi_Static_DNS="";
 
@@ -95,7 +95,7 @@ String WiFi_ConfigTemp_Pass="";
 int WiFi_ConfigTemp_keyIndex=1;
 WiFi_IP_Method_enum_t WiFi_ConfigTemp_IP_Method=WiFi_IP_Method_DHCP;
 String WiFi_ConfigTemp_Static_IP="";
-String WiFi_ConfigTemp_Static_Subnet="";
+String WiFi_ConfigTemp_Static_Netmask="";
 String WiFi_ConfigTemp_Static_Gateway="";
 String WiFi_ConfigTemp_Static_DNS="";
 
@@ -665,10 +665,10 @@ void WiFi_config2_callback(bool IsBack)
   }
 }
 
-void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex,WiFi_IP_Method_enum_t IP_Method,const String &Static_IP,const String &Static_Subnet,const String Static_Gateway,WiFiConfig3Callback callback)
+void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex,WiFi_IP_Method_enum_t IP_Method,const String &Static_IP,const String &Static_Netmask,const String Static_Gateway,WiFiConfig3Callback callback)
 {
-  lv_obt_t *label;
-  WiFi.config
+  lv_obj_t *label;
+  WiFi.config("");
 }
 
 void DisplayWiFiConfig4(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex,WiFiConfig4Callback callback)
@@ -685,6 +685,16 @@ void DisplayWiFiConfig4(lv_obj_t *obj,wl_enc_type encryptionType,const String &S
   }
 
   WiFi.disconnect();
+  WiFi.end();
+  switch(WiFi_ConfigTemp_IP_Method)
+  {
+    case WiFi_IP_Method_DHCP:
+    WiFi.config("");
+    break;
+    case WiFi_IP_Method_Static:
+    WiFi.config(WiFi_ConfigTemp_Static_IP.c_str(),WiFi_ConfigTemp_Static_Netmask.c_str(),WiFi_ConfigTemp_Static_Gateway.c_str());
+    break;
+  }
   WiFi_status=WiFi.begin(SSID.c_str(),Pass.c_str(),encryptionType);
   lv_refr_now(NULL);
   if(WiFi_status!=WL_CONNECTED)
