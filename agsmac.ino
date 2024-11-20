@@ -676,6 +676,7 @@ void MainStatus_WiFiConfig_btn_event_cb(lv_event_t * event)
   switch(code)
   {
     case LV_EVENT_CLICKED:
+    lv_obj_clean(WiFi_Config_Display_obj);
     DisplayWiFiConfig1(WiFi_Config_Display_obj,WiFi_SSID,WiFi_config1_callback);
     return;
   }
