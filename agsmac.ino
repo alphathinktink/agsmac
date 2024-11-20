@@ -29,7 +29,7 @@ typedef void (*WiFiConfig4Callback)(bool IsBack);
 typedef void (*WiFiConfig3Callback)(bool IsBack);
 typedef void (*WiFiConfig2Callback)(bool IsBack);
 typedef void (*WiFiConfig1Callback)(bool IsCancel);
-enum WiFi_IP_Method_enum_t{WiFi_IP_Method_DHCP,WiFi_IP_Method_Static};
+enum WiFi_IP_Method_enum_t{WiFi_IP_Method_DHCP=0,WiFi_IP_Method_Static=1};
 
 static String Debug_EventCodeToString(lv_event_code_t code);
 
@@ -66,6 +66,10 @@ const char * EncryptionTypeDisplayStrings[]={"WEP","WPA/TKIP","WPA2/CCMP","WPA3/
 const wl_enc_type EncryptionTypeDisplayMap[]={ENC_TYPE_WEP,ENC_TYPE_WPA,ENC_TYPE_WPA2,ENC_TYPE_WPA3,ENC_TYPE_NONE,ENC_TYPE_UNKNOWN,ENC_TYPE_AUTO};
 const int EncryptionTypeToCBIMap[]={5,5,1,5,2,0,3,4,6,5};
 
+const char * WiFi_IP_Method_DisplayStrings[]={"DHCP","Static"};
+const WiFi_IP_Method_enum_t WiFi_IP_Method_DisplayMap[]={WiFi_IP_Method_DHCP,WiFi_IP_Method_Static};
+const int WiFi_IP_Method_ToCBIMap[]={0,1};
+
 lv_obj_t * WiFi_Config_Display_obj=NULL;
 lv_obj_t * WiFi_scan_list=NULL;
 lv_obj_t * WiFi_Rescan_btn=NULL;
@@ -78,6 +82,14 @@ lv_obj_t * WiFi_Back1_btn=NULL;
 lv_obj_t * WiFi_EncType_dd=NULL;
 lv_obj_t * WiFi_WepKeyIndex_dd=NULL;
 lv_obj_t * WiFi_WepKeyIndex_lbl=NULL;
+lv_obj_t * WiFi_IP_Method_dd=NULL;
+lv_obj_t * WiFi_Static_IP_lbl=NULL;
+lv_obj_t * WiFi_Static_IP_ta=NULL;
+lv_obj_t * WiFi_Static_Netmask_lbl=NULL;
+lv_obj_t * WiFi_Static_Netmask_ta=NULL;
+lv_obj_t * WiFi_Static_Gateway_lbl=NULL;
+lv_obj_t * WiFi_Static_Gateway_ta=NULL;
+
 String WiFi_SSID="";
 wl_enc_type WiFi_encryptionType=ENC_TYPE_AUTO;
 String WiFi_Pass="";
@@ -161,7 +173,9 @@ void WiFi_config4_callback(bool IsBack)
   narf("Gateway",3);
   #undef narf
   #define narf(t,r) lv_table_set_cell_value(ip_info_table,r,1,t);
-  narf(WiFi.macAddress().toUpperCase().c_str(),0);
+  String macAddress=WiFi.macAddress();
+  macAddress.toUpperCase();
+  narf(macAddress.c_str(),0);
   narf(WiFi.localIP().toString().c_str(),1);
   narf(WiFi.subnetMask().toString().c_str(),2);
   narf(WiFi.gatewayIP().toString().c_str(),3);
@@ -171,7 +185,7 @@ void WiFi_config4_callback(bool IsBack)
     static const char * btnsF[]={"Abort","Start Over",""};
     lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Failed", btnsF, true);
     lv_obj_t * lv_mbox_btns=lv_msgbox_get_btns(mbox);
-    lv_obj_set_align(mbox,LV_ALIGN_RIGHT_MID);
+    lv_obj_align(mbox,LV_ALIGN_RIGHT_MID,0,-20);
     lv_obj_add_event_cb(mbox,WiFi_config4_callback_mbox_event_cb,LV_EVENT_VALUE_CHANGED/*LV_EVENT_ALL*/,NULL);
   }
   else
@@ -179,7 +193,7 @@ void WiFi_config4_callback(bool IsBack)
     static const char * btnsS[]={"Abort","Start Over","Apply",""};
     lv_obj_t * mbox=lv_msgbox_create(NULL, "WiFi Connection", "Success", btnsS, true);
     lv_obj_t * lv_mbox_btns=lv_msgbox_get_btns(mbox);
-    lv_obj_set_align(mbox,LV_ALIGN_RIGHT_MID);
+    lv_obj_align(mbox,LV_ALIGN_RIGHT_MID,0,-20);
     lv_obj_add_event_cb(mbox,WiFi_config4_callback_mbox_event_cb,LV_EVENT_VALUE_CHANGED/*LV_EVENT_ALL*/,NULL);
   }
 }
@@ -678,10 +692,162 @@ void WiFi_config2_callback(bool IsBack)
   }
 }
 
-void DisplayWiFiConfig3(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex,WiFi_IP_Method_enum_t IP_Method,const String &Static_IP,const String &Static_Netmask,const String Static_Gateway,WiFiConfig3Callback callback)
+void WiFi_config3_callback(bool IsBack)
+{
+
+}
+
+void WiFi_IP_Method_dd_event_cb(lv_event_t * event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t *target=lv_event_get_target(event);
+  void *user_data=target->user_data;
+  switch(code)
+  {
+    case LV_EVENT_READY:
+    lv_obj_add_flag(WiFi_Static_IP_lbl, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(WiFi_Static_IP_ta, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(WiFi_Static_Netmask_lbl, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(WiFi_Static_Netmask_ta, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(WiFi_Static_Gateway_lbl, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(WiFi_Static_Gateway_ta, LV_OBJ_FLAG_HIDDEN);
+    return;
+    case LV_EVENT_VALUE_CHANGED:
+    case LV_EVENT_CANCEL:
+    int selectedIPMethod=lv_dropdown_get_selected(WiFi_IP_Method_dd);
+    if(WiFi_IP_Method_DisplayMap[selectedIPMethod]!=WiFi_IP_Method_Static)
+    {
+      lv_obj_add_flag(WiFi_Static_IP_lbl, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(WiFi_Static_IP_ta, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(WiFi_Static_Netmask_lbl, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(WiFi_Static_Netmask_ta, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(WiFi_Static_Gateway_lbl, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(WiFi_Static_Gateway_ta, LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+      lv_obj_clear_flag(WiFi_Static_IP_lbl, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(WiFi_Static_IP_ta, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(WiFi_Static_Netmask_lbl, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(WiFi_Static_Netmask_ta, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(WiFi_Static_Gateway_lbl, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(WiFi_Static_Gateway_ta, LV_OBJ_FLAG_HIDDEN);
+    }
+    return;
+  }
+}
+
+void WiFi_Static_All_ta_event_cb(lv_event_t * event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t *target=lv_event_get_target(event);
+  void *user_data=target->user_data;
+  switch(code)
+  {
+    case LV_EVENT_FOCUSED:
+    case LV_EVENT_PRESSED:
+    case LV_EVENT_CLICKED:
+    case LV_EVENT_LONG_PRESSED:
+    case LV_EVENT_LONG_PRESSED_REPEAT:
+    lv_keyboard_set_textarea(WiFi_kb,target);
+    lv_obj_clear_flag(WiFi_kb, LV_OBJ_FLAG_HIDDEN);
+    return;
+    case LV_EVENT_DEFOCUSED:
+    lv_keyboard_set_textarea(WiFi_kb,NULL);
+    lv_obj_add_flag(WiFi_kb, LV_OBJ_FLAG_HIDDEN);
+    return;
+  }
+}
+
+void DisplayWiFiConfig3(lv_obj_t *obj,WiFi_IP_Method_enum_t IP_Method,const String &Static_IP,const String &Static_Netmask,const String &Static_Gateway,WiFiConfig3Callback callback)
 {
   lv_obj_t *label;
-  WiFi.config("");
+  
+  label=lv_label_create(obj);
+  lv_label_set_text(label,"IP Assignment Method:");
+
+  WiFi_IP_Method_dd=lv_dropdown_create(obj);
+  int c=sizeof(WiFi_IP_Method_DisplayStrings)/sizeof(char *);
+  String dd_list;
+  for(int i=0;i<c;i++)
+  {
+    if(i>0)
+    {
+      dd_list+="\n";
+    }
+    dd_list+=WiFi_IP_Method_DisplayStrings[i];
+  }
+  lv_dropdown_set_options(WiFi_IP_Method_dd,dd_list.c_str());
+  lv_dropdown_set_selected(WiFi_IP_Method_dd,WiFi_IP_Method_ToCBIMap[IP_Method]);
+  lv_obj_align_to(WiFi_IP_Method_dd,label,LV_ALIGN_OUT_BOTTOM_LEFT,0,0);
+
+  WiFi_Static_IP_lbl=lv_label_create(obj);
+  lv_label_set_text(WiFi_Static_IP_lbl,"Static IP:");
+  lv_obj_align_to(WiFi_Static_IP_lbl,WiFi_IP_Method_dd,LV_ALIGN_OUT_BOTTOM_LEFT,0,5);
+
+  WiFi_Static_IP_ta=lv_textarea_create(obj);
+  lv_textarea_set_one_line(WiFi_Static_IP_ta,true);
+  lv_textarea_set_password_mode(WiFi_Static_IP_ta,false);
+  lv_textarea_set_max_length(WiFi_Static_IP_ta,15);
+  lv_textarea_set_accepted_chars(WiFi_Static_IP_ta,"0123456789.:");
+  lv_obj_align_to(WiFi_Static_IP_ta,WiFi_Static_IP_lbl,LV_ALIGN_OUT_BOTTOM_LEFT,0,0);
+  lv_textarea_set_text(WiFi_Static_IP_ta,Static_IP.c_str());
+
+  WiFi_Static_Netmask_lbl=lv_label_create(obj);
+  lv_label_set_text(WiFi_Static_Netmask_lbl,"Netmask:");
+  lv_obj_align_to(WiFi_Static_Netmask_lbl,WiFi_Static_IP_ta,LV_ALIGN_OUT_BOTTOM_LEFT,0,5);
+
+  WiFi_Static_Netmask_ta=lv_textarea_create(obj);
+  lv_textarea_set_one_line(WiFi_Static_Netmask_ta,true);
+  lv_textarea_set_password_mode(WiFi_Static_Netmask_ta,false);
+  lv_textarea_set_max_length(WiFi_Static_Netmask_ta,15);
+  lv_textarea_set_accepted_chars(WiFi_Static_Netmask_ta,"0123456789.:");
+  lv_obj_align_to(WiFi_Static_Netmask_ta,WiFi_Static_Netmask_lbl,LV_ALIGN_OUT_BOTTOM_LEFT,0,0);
+  lv_textarea_set_text(WiFi_Static_Netmask_ta,Static_Netmask.c_str());
+
+  WiFi_Static_Gateway_lbl=lv_label_create(obj);
+  lv_label_set_text(WiFi_Static_Gateway_lbl,"Gateway:");
+  lv_obj_align_to(WiFi_Static_Gateway_lbl,WiFi_Static_Netmask_ta,LV_ALIGN_OUT_BOTTOM_LEFT,0,5);
+
+  WiFi_Static_Gateway_ta=lv_textarea_create(obj);
+  lv_textarea_set_one_line(WiFi_Static_Gateway_ta,true);
+  lv_textarea_set_password_mode(WiFi_Static_Gateway_ta,false);
+  lv_textarea_set_max_length(WiFi_Static_Gateway_ta,15);
+  lv_textarea_set_accepted_chars(WiFi_Static_Gateway_ta,"0123456789.:");
+  lv_obj_align_to(WiFi_Static_Gateway_ta,WiFi_Static_Gateway_lbl,LV_ALIGN_OUT_BOTTOM_LEFT,0,0);
+  lv_textarea_set_text(WiFi_Static_Gateway_ta,Static_Gateway.c_str());
+
+  WiFi_kb = lv_keyboard_create(obj);
+  lv_obj_add_flag(WiFi_kb, LV_OBJ_FLAG_HIDDEN);
+  lv_keyboard_set_mode(WiFi_kb,LV_KEYBOARD_MODE_NUMBER);
+  lv_obj_set_height(WiFi_kb,lv_obj_get_content_height(obj)-(lv_obj_get_y(WiFi_Static_Gateway_ta)+lv_obj_get_height(WiFi_Static_Gateway_ta)));
+  
+
+  switch(IP_Method)
+  {
+    case WiFi_IP_Method_DHCP:
+    lv_obj_add_flag(WiFi_Static_IP_lbl, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(WiFi_Static_IP_ta, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(WiFi_Static_Netmask_lbl, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(WiFi_Static_Netmask_ta, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(WiFi_Static_Gateway_lbl, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(WiFi_Static_Gateway_ta, LV_OBJ_FLAG_HIDDEN);
+    break;
+    case WiFi_IP_Method_Static:
+    lv_obj_clear_flag(WiFi_Static_IP_lbl, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(WiFi_Static_IP_ta, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(WiFi_Static_Netmask_lbl, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(WiFi_Static_Netmask_ta, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(WiFi_Static_Gateway_lbl, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(WiFi_Static_Gateway_ta, LV_OBJ_FLAG_HIDDEN);
+    break;
+  }
+
+  lv_obj_add_event_cb(WiFi_Static_IP_ta,WiFi_Static_All_ta_event_cb,LV_EVENT_ALL,NULL);
+  lv_obj_add_event_cb(WiFi_Static_Netmask_ta,WiFi_Static_All_ta_event_cb,LV_EVENT_ALL,NULL);
+  lv_obj_add_event_cb(WiFi_Static_Gateway_ta,WiFi_Static_All_ta_event_cb,LV_EVENT_ALL,NULL);
+  lv_obj_add_event_cb(WiFi_IP_Method_dd,WiFi_IP_Method_dd_event_cb,LV_EVENT_ALL,NULL);
+  
 }
 
 void DisplayWiFiConfig4(lv_obj_t *obj,wl_enc_type encryptionType,const String &SSID,const String &Pass,int keyIndex,WiFiConfig4Callback callback)
@@ -783,11 +949,17 @@ void setup() {
 //WiFi_SSID
   //saveSetting("WiFi_SSID","KGM_Offices");
   //WiFi_SSID=loadSetting("WiFi_SSID");
-  //erial.println(WiFi_SSID);
+  //Serial.println(WiFi_SSID);
 
   //DisplayWiFiConfig1(obj,WiFi_SSID,WiFi_config1_callback);
+
   DisplayMainStatusPanel(obj);
 
+  String Test="192.168.1.1";
+  Serial.println(OmNomNomSD(Test,"."));
+  Serial.println(OmNomNomSD(Test,"."));
+  Serial.println(OmNomNomSD(Test,"."));
+  Serial.println(OmNomNomSD(Test,"."));
 }
 
 void loop() { 
