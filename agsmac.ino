@@ -1006,9 +1006,7 @@ void MainStatus_WiFiConfig_btn_event_cb(lv_event_t * event)
 {
   lv_event_code_t code = lv_event_get_code(event);
   lv_obj_t *target=lv_event_get_target(event);//button matrix
-  lv_obj_t *current_target=lv_event_get_current_target(event);
   void *user_data=target->user_data;
-  void *current_user_data=current_target->user_data;
   switch(code)
   {
     case LV_EVENT_CLICKED:
@@ -1017,6 +1015,72 @@ void MainStatus_WiFiConfig_btn_event_cb(lv_event_t * event)
     return;
   }
 
+}
+
+void MainStatus_WiFiStatus_btn_event_cb(lv_event_t * event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t *target=lv_event_get_target(event);//button matrix
+  void *user_data=target->user_data;
+  switch(code)
+  {
+    case LV_EVENT_CLICKED:
+    lv_obj_clean(WiFi_Config_Display_obj);
+    DisplayWiFiStatusPanel(WiFi_Config_Display_obj);
+    return;
+  }
+
+}
+
+void WiFiStatus_Back_btn_event_cb(lv_event_t *event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t *target=lv_event_get_target(event);//button matrix
+  void *user_data=target->user_data;
+  switch(code)
+  {
+    case LV_EVENT_CLICKED:
+    DisplayMainStatusPanel(WiFi_Config_Display_obj);
+    return;
+  }
+}
+
+void DisplayWiFiStatusPanel(lv_obj_t *obj)
+{
+  lv_obj_clean(obj);
+
+  lv_obj_t *label;
+
+  lv_obj_t *ip_info_table=lv_table_create(WiFi_Config_Display_obj);
+  #define narf(t,r) lv_table_set_cell_value(ip_info_table,r,0,t);
+  narf("Mac Address",0);
+  narf("SSID",1);
+  narf("IP",2);
+  narf("Netmask",3);
+  narf("Gateway",4);
+  #undef narf
+  #define narf(t,r) lv_table_set_cell_value(ip_info_table,r,1,t);
+  String macAddress=WiFi.macAddress();
+  macAddress.toUpperCase();
+  narf(macAddress.c_str(),0);
+  String SSID_and_Enc=WiFi.SSID();
+  wl_enc_type encryptionType=(wl_enc_type)(WiFi.encryptionType());
+  String Enc=EncryptionTypeDisplayStrings[EncryptionTypeToCBIMap[encryptionType]];
+  SSID_and_Enc+=" ["+Enc+"]";
+  narf(SSID_and_Enc.c_str(),1)
+  narf(WiFi.localIP().toString().c_str(),2);
+  narf(WiFi.subnetMask().toString().c_str(),3);
+  narf(WiFi.gatewayIP().toString().c_str(),4);
+  #undef narf
+  lv_table_set_col_width(ip_info_table,0,150);
+  lv_table_set_col_width(ip_info_table,1,300);
+
+  lv_obj_t *WiFiStatus_Back_btn=lv_btn_create(obj);
+  label=lv_label_create(WiFiStatus_Back_btn);
+  lv_label_set_text(label,"Back");
+  lv_obj_align_to(WiFiStatus_Back_btn,ip_info_table,LV_ALIGN_OUT_RIGHT_BOTTOM,10,0);
+
+  lv_obj_add_event_cb(WiFiStatus_Back_btn,WiFiStatus_Back_btn_event_cb,LV_EVENT_ALL,NULL);
 }
 
 void DisplayMainStatusPanel(lv_obj_t *obj)
@@ -1029,7 +1093,14 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
   lv_obj_t *lv_WiFiConfig_btn=lv_btn_create(obj);
   label=lv_label_create(lv_WiFiConfig_btn);
   lv_label_set_text(label,"WiFi Config");
+
+  lv_obj_t *lv_WiFiStatus_btn=lv_btn_create(obj);
+  label=lv_label_create(lv_WiFiStatus_btn);
+  lv_label_set_text(label,"WiFi Status");
+  lv_obj_align_to(lv_WiFiStatus_btn,lv_WiFiConfig_btn,LV_ALIGN_OUT_RIGHT_MID,0,0);
+
   lv_obj_add_event_cb(lv_WiFiConfig_btn,MainStatus_WiFiConfig_btn_event_cb,LV_EVENT_ALL,NULL);
+  lv_obj_add_event_cb(lv_WiFiStatus_btn,MainStatus_WiFiStatus_btn_event_cb,LV_EVENT_ALL,NULL);
 }
 
 void setup() {
@@ -1105,22 +1176,10 @@ void setup() {
         callback(false);
       }
     }*/
-    if(WiFi_status==WL_CONNECTED)
-    {
-      String macAddress=WiFi.macAddress();
-      macAddress.toUpperCase();
-      Serial.println("MAC: "+macAddress);
-      Serial.println("IP: "+WiFi.localIP().toString());
-      Serial.println("Subnet: "+WiFi.subnetMask().toString());
-      Serial.println("Gateway: "+WiFi.gatewayIP().toString());
-    }
     lv_obj_del(WiFi_wait_sp);
   }
-  
-
 
   DisplayMainStatusPanel(obj);
-
 }
 
 void loop() { 
