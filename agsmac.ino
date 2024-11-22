@@ -16,9 +16,11 @@
 #include "KVStore.h"
 #include "kvstore_global_api.h"
 #include "mbed.h"
+#include <mbed_mktime.h>
 
 //#include <SPI.h>
 #include <WiFi.h>
+#include <WiFiUdp.h>
 #include "ValidateRoutines.h"
 
 Arduino_H7_Video          Display(800, 480, GigaDisplayShield); /* Arduino_H7_Video Display(1024, 768, USBCVideo); */
@@ -33,6 +35,13 @@ typedef void (*WiFiConfig1Callback)(bool IsCancel);
 enum WiFi_IP_Method_enum_t{WiFi_IP_Method_DHCP=0,WiFi_IP_Method_Static=1};
 
 static String Debug_EventCodeToString(lv_event_code_t code);
+constexpr unsigned long printInterval { 1000 };
+unsigned long printNow {};
+unsigned int localPort = 2390;
+constexpr auto timeServer { "pool.ntp.org" };
+const int NTP_PACKET_SIZE = 48;
+byte packetBuffer[NTP_PACKET_SIZE];
+WiFiUDP Udp;
 
 bool saveSetting(const String &Key,const String &Val)
 {
@@ -57,6 +66,8 @@ String loadSetting(const String &Key)
     return Res;
   }
 }
+
+lv_obj_t * DateTimeDisplay_lbl=NULL;
 
 struct WiFi_scan_list_parameters
 {
@@ -997,6 +1008,7 @@ void DisplayWiFiConfig4(lv_obj_t *obj,WiFiConfig4Callback callback)
   {
     if(callback)
     {
+      setNtpTime();
       callback(false);
     }
   }
@@ -1083,6 +1095,20 @@ void DisplayWiFiStatusPanel(lv_obj_t *obj)
   lv_obj_add_event_cb(WiFiStatus_Back_btn,WiFiStatus_Back_btn_event_cb,LV_EVENT_ALL,NULL);
 }
 
+void DateTimeDisplay_lbl_event_cb(lv_event_t *event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t *target=lv_event_get_target(event);//button matrix
+  void *user_data=target->user_data;
+  switch(code)
+  {
+    case LV_EVENT_RELEASED:
+    case LV_EVENT_DELETE:
+    DateTimeDisplay_lbl=NULL;
+    return;
+  }
+}
+
 void DisplayMainStatusPanel(lv_obj_t *obj)
 {
   lv_obj_clean(obj);
@@ -1099,8 +1125,15 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
   lv_label_set_text(label,"WiFi Status");
   lv_obj_align_to(lv_WiFiStatus_btn,lv_WiFiConfig_btn,LV_ALIGN_OUT_RIGHT_MID,0,0);
 
+  label=lv_label_create(obj);
+  lv_obj_align(label,LV_ALIGN_BOTTOM_LEFT,0,0);
+  String Temp=getLocaltime();
+  lv_label_set_text(label,Temp.c_str());
+  DateTimeDisplay_lbl=label;
+
   lv_obj_add_event_cb(lv_WiFiConfig_btn,MainStatus_WiFiConfig_btn_event_cb,LV_EVENT_ALL,NULL);
   lv_obj_add_event_cb(lv_WiFiStatus_btn,MainStatus_WiFiStatus_btn_event_cb,LV_EVENT_ALL,NULL);
+  lv_obj_add_event_cb(DateTimeDisplay_lbl,DateTimeDisplay_lbl_event_cb,LV_EVENT_ALL,NULL);
 }
 
 void setup() {
@@ -1176,6 +1209,10 @@ void setup() {
         callback(false);
       }
     }*/
+    if(WiFi_status==WL_CONNECTED)
+    {
+      setNtpTime();
+    }
     lv_obj_del(WiFi_wait_sp);
   }
 
@@ -1185,6 +1222,15 @@ void setup() {
 void loop() { 
   /* Feed LVGL engine */
   lv_timer_handler();
+  if(millis()>printNow)
+  {
+    if(DateTimeDisplay_lbl!=NULL)
+    {
+      String Temp=getLocaltime();
+      lv_label_set_text(DateTimeDisplay_lbl,Temp.c_str());
+    }
+    printNow = millis() + printInterval;
+  }
 }
 
 static String Debug_EventCodeToString(lv_event_code_t code)
@@ -1240,4 +1286,60 @@ static String Debug_EventCodeToString(lv_event_code_t code)
   }
   #undef narf
   return Res;
+}
+
+String getLocaltime()
+{
+    char buffer[32];
+    tm t;
+    _rtc_localtime(time(NULL), &t, RTC_4_YEAR_LEAP_YEAR_SUPPORT);
+    //lv_label_set_text(label,"11/22/2024 7:27 PM");
+    strftime(buffer, 32, "%m/%d/%Y %I:%M:%S%p", &t);
+    String Res=String(buffer);
+    Res+=" UTC";
+    return Res;
+}
+
+void setNtpTime(void)
+{
+    Udp.begin(localPort);
+    sendNTPpacket(timeServer);
+    for(int i=0;i<1000;i+=100)
+    {
+      lv_timer_handler();
+      delay(100);
+    }
+    parseNtpPacket();
+    Udp.stop();
+}
+unsigned long sendNTPpacket(const char * address)
+{
+    memset(packetBuffer, 0, NTP_PACKET_SIZE);
+    packetBuffer[0] = 0b11100011; // LI, Version, Mode
+    packetBuffer[1] = 0; // Stratum, or type of clock
+    packetBuffer[2] = 6; // Polling Interval
+    packetBuffer[3] = 0xEC; // Peer Clock Precision
+    // 8 bytes of zero for Root Delay & Root Dispersion
+    packetBuffer[12] = 49;
+    packetBuffer[13] = 0x4E;
+    packetBuffer[14] = 49;
+    packetBuffer[15] = 52;
+
+    Udp.beginPacket(address, 123); // NTP requests are to port 123
+    Udp.write(packetBuffer, NTP_PACKET_SIZE);
+    Udp.endPacket();
+}
+unsigned long parseNtpPacket(void)
+{
+    if (!Udp.parsePacket())
+        return 0;
+
+    Udp.read(packetBuffer, NTP_PACKET_SIZE);
+    const unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+    const unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+    const unsigned long secsSince1900 = highWord << 16 | lowWord;
+    constexpr unsigned long seventyYears = 2208988800UL;
+    const unsigned long epoch = secsSince1900 - seventyYears;
+    set_time(epoch);
+    return epoch;
 }
