@@ -38,7 +38,7 @@ static String Debug_EventCodeToString(lv_event_code_t code);
 constexpr unsigned long printInterval { 1000 };
 unsigned long printNow {};
 unsigned int localPort = 2390;
-constexpr auto timeServer { "pool.ntp.org" };
+String timeServer("pool.ntp.org");
 const int NTP_PACKET_SIZE = 48;
 byte packetBuffer[NTP_PACKET_SIZE];
 WiFiUDP Udp;
@@ -103,6 +103,8 @@ lv_obj_t * WiFi_Static_Netmask_lbl=NULL;
 lv_obj_t * WiFi_Static_Netmask_ta=NULL;
 lv_obj_t * WiFi_Static_Gateway_lbl=NULL;
 lv_obj_t * WiFi_Static_Gateway_ta=NULL;
+lv_obj_t * NTP_Server_ta=NULL;
+lv_obj_t * NTP_Server_kb=NULL;
 
 String WiFi_SSID="";
 wl_enc_type WiFi_encryptionType=ENC_TYPE_AUTO;
@@ -1014,6 +1016,98 @@ void DisplayWiFiConfig4(lv_obj_t *obj,WiFiConfig4Callback callback)
   }
 }
 
+void NTP_Server_ta_event_cb(lv_event_t * event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t *target=lv_event_get_target(event);//button matrix
+  void *user_data=target->user_data;
+  switch(code)
+  {
+    case LV_EVENT_FOCUSED:
+    case LV_EVENT_PRESSED:
+    case LV_EVENT_CLICKED:
+    case LV_EVENT_LONG_PRESSED:
+    case LV_EVENT_LONG_PRESSED_REPEAT:
+    lv_keyboard_set_textarea(NTP_Server_kb,NTP_Server_ta);
+    lv_obj_clear_flag(NTP_Server_kb, LV_OBJ_FLAG_HIDDEN);
+    return;
+    case LV_EVENT_DEFOCUSED:
+    lv_keyboard_set_textarea(NTP_Server_kb,NULL);
+    lv_obj_add_flag(NTP_Server_kb, LV_OBJ_FLAG_HIDDEN);
+    return;
+  }
+}
+
+void NTPServer_Apply_btn_event_cb(lv_event_t * event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t *target=lv_event_get_target(event);//button matrix
+  void *user_data=target->user_data;
+  switch(code)
+  {
+    case LV_EVENT_CLICKED:
+    String Temp=lv_textarea_get_text(NTP_Server_ta);
+    if(!Temp.isEmpty() && Temp!="")
+    {
+      saveSetting("timeServer",Temp);
+      timeServer=Temp;
+    }
+    else
+    {
+      saveSetting("timeServer","pool.ntp.org");
+      timeServer="pool.ntp.org";
+      lv_textarea_set_text(NTP_Server_ta,"pool.ntp.org");
+    }
+    DisplayMainStatusPanel(WiFi_Config_Display_obj);
+    return;
+  }
+}
+
+void NTPServer_Cancel_btn_event_cb(lv_event_t * event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t *target=lv_event_get_target(event);//button matrix
+  void *user_data=target->user_data;
+  switch(code)
+  {
+    case LV_EVENT_CLICKED:
+    DisplayMainStatusPanel(WiFi_Config_Display_obj);
+    return;
+  }
+}
+
+void DisplayNTPServerConfig(lv_obj_t *obj)
+{
+  lv_obj_t *label;
+
+  label=lv_label_create(obj);
+  lv_label_set_text(label,"NTP Server Address:");
+  NTP_Server_ta=lv_textarea_create(obj);
+  lv_textarea_set_one_line(NTP_Server_ta,true);
+  lv_textarea_set_password_mode(NTP_Server_ta,false);
+  lv_textarea_set_accepted_chars(NTP_Server_ta,"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-.");
+  lv_textarea_set_text(NTP_Server_ta,timeServer.c_str());
+  lv_obj_align_to(NTP_Server_ta,label,LV_ALIGN_OUT_BOTTOM_LEFT,0,0);
+  lv_obj_set_width(NTP_Server_ta,700);
+
+  NTP_Server_kb=lv_keyboard_create(obj);
+  lv_obj_add_flag(NTP_Server_kb, LV_OBJ_FLAG_HIDDEN);
+
+  lv_obj_t * NTPServer_Apply_btn=lv_btn_create(obj);
+  label=lv_label_create(NTPServer_Apply_btn);
+  lv_label_set_text(label,"Apply");
+  lv_obj_align_to(NTPServer_Apply_btn,NTP_Server_ta,LV_ALIGN_OUT_BOTTOM_RIGHT,0,5);
+
+  lv_obj_t * NTPServer_Cancel_btn=lv_btn_create(obj);
+  label=lv_label_create(NTPServer_Cancel_btn);
+  lv_label_set_text(label,"Cancel");
+  lv_obj_align_to(NTPServer_Cancel_btn,NTPServer_Apply_btn,LV_ALIGN_OUT_LEFT_BOTTOM,-5,0);
+
+  lv_obj_add_event_cb(NTP_Server_ta, (lv_event_cb_t)NTP_Server_ta_event_cb,LV_EVENT_ALL,NULL);
+  lv_obj_add_event_cb(NTPServer_Cancel_btn,(lv_event_cb_t)NTPServer_Cancel_btn_event_cb,LV_EVENT_ALL,NULL);
+  lv_obj_add_event_cb(NTPServer_Apply_btn, (lv_event_cb_t)NTPServer_Apply_btn_event_cb,LV_EVENT_ALL,NULL);
+}
+
 void MainStatus_WiFiConfig_btn_event_cb(lv_event_t * event)
 {
   lv_event_code_t code = lv_event_get_code(event);
@@ -1041,7 +1135,20 @@ void MainStatus_WiFiStatus_btn_event_cb(lv_event_t * event)
     DisplayWiFiStatusPanel(WiFi_Config_Display_obj);
     return;
   }
+}
 
+void MainStatus_NTPServer_btn_event_cb(lv_event_t * event)
+{
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t *target=lv_event_get_target(event);//button matrix
+  void *user_data=target->user_data;
+  switch(code)
+  {
+    case LV_EVENT_CLICKED:
+    lv_obj_clean(WiFi_Config_Display_obj);
+    DisplayNTPServerConfig(WiFi_Config_Display_obj);
+    return;
+  }
 }
 
 void WiFiStatus_Back_btn_event_cb(lv_event_t *event)
@@ -1115,7 +1222,6 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
 
   lv_obj_t *label;
 
-
   lv_obj_t *lv_WiFiConfig_btn=lv_btn_create(obj);
   label=lv_label_create(lv_WiFiConfig_btn);
   lv_label_set_text(label,"WiFi Config");
@@ -1125,6 +1231,11 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
   lv_label_set_text(label,"WiFi Status");
   lv_obj_align_to(lv_WiFiStatus_btn,lv_WiFiConfig_btn,LV_ALIGN_OUT_RIGHT_MID,0,0);
 
+  lv_obj_t *lv_NTPServer_btn=lv_btn_create(obj);
+  label=lv_label_create(lv_NTPServer_btn);
+  lv_label_set_text(label,"NTP Server");
+  lv_obj_align_to(lv_NTPServer_btn,lv_WiFiStatus_btn,LV_ALIGN_OUT_RIGHT_MID,0,0);
+
   label=lv_label_create(obj);
   lv_obj_align(label,LV_ALIGN_BOTTOM_LEFT,0,0);
   String Temp=getLocaltime();
@@ -1133,6 +1244,7 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
 
   lv_obj_add_event_cb(lv_WiFiConfig_btn,MainStatus_WiFiConfig_btn_event_cb,LV_EVENT_ALL,NULL);
   lv_obj_add_event_cb(lv_WiFiStatus_btn,MainStatus_WiFiStatus_btn_event_cb,LV_EVENT_ALL,NULL);
+  lv_obj_add_event_cb(lv_NTPServer_btn,MainStatus_NTPServer_btn_event_cb,LV_EVENT_ALL,NULL);
   lv_obj_add_event_cb(DateTimeDisplay_lbl,DateTimeDisplay_lbl_event_cb,LV_EVENT_ALL,NULL);
 }
 
@@ -1156,6 +1268,12 @@ void setup() {
 
   WiFi_Static_Gateway=loadSetting("WiFi_Static_Gateway");
 
+  Temp=loadSetting("timeServer");
+  if(!Temp.isEmpty() && Temp!="")
+  {
+    timeServer=Temp;
+  }
+  
   Serial.begin(115200);
 
   Display.begin();
@@ -1303,7 +1421,7 @@ String getLocaltime()
 void setNtpTime(void)
 {
     Udp.begin(localPort);
-    sendNTPpacket(timeServer);
+    sendNTPpacket(timeServer.c_str());
     for(int i=0;i<1000;i+=100)
     {
       lv_timer_handler();
