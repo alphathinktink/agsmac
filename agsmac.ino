@@ -1252,6 +1252,11 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
   lv_label_set_text(label,"NTP Server");
   lv_obj_align_to(lv_NTPServer_btn,lv_WiFiStatus_btn,LV_ALIGN_OUT_RIGHT_MID,0,0);
 
+  LV_IMG_DECLARE(logo);
+  lv_obj_t *lv_Logo_img=lv_img_create(obj);
+  lv_img_set_src(lv_Logo_img, &logo);
+  lv_obj_align(lv_Logo_img, LV_ALIGN_RIGHT_MID, -20, 0);
+
   label=lv_label_create(obj);
   lv_obj_align(label,LV_ALIGN_BOTTOM_LEFT,0,0);
   String Temp=getLocaltime();
