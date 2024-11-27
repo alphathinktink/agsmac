@@ -1,10 +1,5 @@
 #include "ValidateRoutines.h"
 
-#include "Arduino.h"
-#include "WString.h"
-
-using namespace arduino;
-
 String OmNomNomSD(String &Text,const String &Delim)
 {
   String Res;
