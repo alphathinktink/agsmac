@@ -133,8 +133,6 @@ String WiFi_ConfigTemp_Static_Gateway="";
 
 USBHostMSD msd;
 mbed::FATFileSystem usb("usb");
-//mbed::FATFileSystem usb("USB_DRIVE_DESIGNATION");
-
 
 void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
 {
@@ -1349,9 +1347,9 @@ void setup() {
     lv_obj_del(WiFi_wait_sp);
   }
 
-  DisplayMainStatusPanel(obj);
-
   DataLogStart();
+
+  DisplayMainStatusPanel(obj);
   DataLog("Start");
 }
 
