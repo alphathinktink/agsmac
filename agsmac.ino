@@ -1294,6 +1294,7 @@ void setup() {
 
   Display.begin();
   TouchDetector.begin();
+  DataLogStart();
 
   /* Create a container with grid 1x1 */
   static lv_coord_t col_dsc[] = {755, 755, LV_GRID_TEMPLATE_LAST};
@@ -1350,8 +1351,6 @@ void setup() {
     }
     lv_obj_del(WiFi_wait_sp);
   }
-
-  DataLogStart();
 
   DisplayMainStatusPanel(obj);
   DataLog("Start");
@@ -1518,7 +1517,7 @@ void DataLog(const String &Text)
 
   String Line=CurTime+"\t"+Text+"\n";
 
-  FILE *f = fopen("/usb/agsmac.log", "w+");
+  FILE *f = fopen("/usb/agsmac.log", "a+");
 
   if(f==NULL)
   {
@@ -1526,6 +1525,8 @@ void DataLog(const String &Text)
   }
 
   fflush(stdout);
+
+  fseek(f,0,SEEK_END);
 
   fprintf(f, Line.c_str());
 
