@@ -6,6 +6,7 @@
 
   use version 4.1.5 of the [Arduino Mbed OS Giga Boards] library.
   use version 8.3.11 of the [lvgl] library.
+  use version 0.3.1 of the [Arduino_USBHostMbed5] library.
 */
 
 #include "Arduino_H7_Video.h"
@@ -21,6 +22,11 @@
 //#include <SPI.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+
+#include <DigitalOut.h>
+#include <FATFileSystem.h>
+#include <Arduino_USBHostMbed5.h>
+
 #include "ValidateRoutines.h"
 
 Arduino_H7_Video          Display(800, 480, GigaDisplayShield); /* Arduino_H7_Video Display(1024, 768, USBCVideo); */
@@ -124,6 +130,10 @@ WiFi_IP_Method_enum_t WiFi_ConfigTemp_IP_Method=WiFi_IP_Method_DHCP;
 String WiFi_ConfigTemp_Static_IP="";
 String WiFi_ConfigTemp_Static_Netmask="";
 String WiFi_ConfigTemp_Static_Gateway="";
+
+USBHostMSD msd;
+mbed::FATFileSystem usb("usb");
+//mbed::FATFileSystem usb("USB_DRIVE_DESIGNATION");
 
 
 void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
@@ -1340,6 +1350,9 @@ void setup() {
   }
 
   DisplayMainStatusPanel(obj);
+
+  DataLogStart();
+  DataLog("Start");
 }
 
 void loop() { 
@@ -1465,4 +1478,59 @@ unsigned long parseNtpPacket(void)
     const unsigned long epoch = secsSince1900 - seventyYears;
     set_time(epoch);
     return epoch;
+}
+
+void DataLogStart(void)
+{
+  pinMode(PA_15, OUTPUT); //enable the USB-A port
+  digitalWrite(PA_15, HIGH);
+
+  int err;
+  
+  while(!msd.connect())
+  {
+    lv_timer_handler();
+    delay(100);
+  }
+
+  while (!msd.connected()) {
+    delay(1000);
+  }
+
+
+  err = usb.mount(&msd);
+  if (err) {
+    while (1) ;
+  }
+}
+
+void DataLog(const String &Text)
+{
+  int err;
+  mbed::fs_file_t file;
+  struct dirent *ent;
+  int dirIndex = 0;
+  int res = 0;
+
+  String CurTime=getLocaltime();
+
+  String Line=CurTime+"\t"+Text+"\n";
+
+  FILE *f = fopen("/usb/agsmac.log", "w+");
+
+  if(f==NULL)
+  {
+    return;
+  }
+
+  fflush(stdout);
+
+  fprintf(f, Line.c_str());
+
+  fflush(stdout);
+  err = fclose(f);
+
+  if (err < 0) {
+  } else {
+  }
 }
