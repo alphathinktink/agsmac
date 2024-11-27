@@ -1019,6 +1019,7 @@ void DisplayWiFiConfig4(lv_obj_t *obj,WiFiConfig4Callback callback)
     if(callback)
     {
       setNtpTime();
+      DataLog("Synchronized NTP time.");    
       callback(false);
     }
   }
@@ -1066,11 +1067,13 @@ void NTPServer_Apply_btn_event_cb(lv_event_t * event)
       timeServer="pool.ntp.org";
       lv_textarea_set_text(NTP_Server_ta,"pool.ntp.org");
     }
+    DataLog("Time server set to: "+timeServer);
     lv_obj_clean(WiFi_Config_Display_obj);
     lv_obj_t * WiFi_wait_sp=lv_spinner_create(WiFi_Config_Display_obj,800,240);
     lv_obj_align_to(WiFi_wait_sp,WiFi_Config_Display_obj,LV_ALIGN_CENTER,0,0);
     lv_refr_now(NULL);
     setNtpTime();
+    DataLog("Synchronized NTP time.");    
     DisplayMainStatusPanel(WiFi_Config_Display_obj);
     return;
   }
@@ -1343,6 +1346,7 @@ void setup() {
     if(WiFi_status==WL_CONNECTED)
     {
       setNtpTime();
+      DataLog("Synchronized NTP time.");    
     }
     lv_obj_del(WiFi_wait_sp);
   }
