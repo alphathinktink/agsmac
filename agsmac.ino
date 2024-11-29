@@ -1519,6 +1519,10 @@ void DataLogStart(void)
 
   int err;
   
+  if(!msd.connect())
+  {
+    return;
+  }
   while(!msd.connect())
   {
     lv_timer_handler();
@@ -1526,12 +1530,16 @@ void DataLogStart(void)
   }
 
   while (!msd.connected()) {
+    lv_timer_handler();
     delay(1000);
   }
 
+  Serial.println(__LINE__);
 
   err = usb.mount(&msd);
+  Serial.println(__LINE__);
   if (err) {
+  Serial.println(__LINE__);
     while (1) ;
   }
 }
