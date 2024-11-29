@@ -1534,12 +1534,9 @@ void DataLogStart(void)
     delay(1000);
   }
 
-  Serial.println(__LINE__);
 
   err = usb.mount(&msd);
-  Serial.println(__LINE__);
   if (err) {
-  Serial.println(__LINE__);
     while (1) ;
   }
 }
