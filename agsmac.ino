@@ -1186,30 +1186,56 @@ void DisplayWiFiStatusPanel(lv_obj_t *obj)
 
   lv_obj_t *label;
 
+  wl_status_t status=(wl_status_t)(WiFi.status());
+  String StatusString;
+  switch(status)
+  {
+    #define narf(x) case x: StatusString=#x;break;
+    narf(WL_NO_MODULE)
+    narf(WL_IDLE_STATUS)
+    narf(WL_NO_SSID_AVAIL)
+    narf(WL_SCAN_COMPLETED)
+    narf(WL_CONNECTED)
+    narf(WL_CONNECT_FAILED)
+    narf(WL_CONNECTION_LOST)
+    narf(WL_DISCONNECTED)
+    narf(WL_AP_LISTENING)
+    narf(WL_AP_CONNECTED)
+    narf(WL_AP_FAILED)
+    default:
+    StatusString="Unknown";
+    break;
+    #undef narf
+  }
+
   lv_obj_t *ip_info_table=lv_table_create(WiFi_Config_Display_obj);
   #define narf(t,r) lv_table_set_cell_value(ip_info_table,r,0,t);
-  narf("Mac Address",0);
-  narf("SSID",1);
-  narf("IP",2);
-  narf("Netmask",3);
-  narf("Gateway",4);
+  narf("Status",0);
+  narf("Mac Address",1);
+  narf("SSID",2);
+  narf("IP",3);
+  narf("Netmask",4);
+  narf("Gateway",5);
   #undef narf
   #define narf(t,r) lv_table_set_cell_value(ip_info_table,r,1,t);
+  narf(StatusString.c_str(),0);
   String macAddress=WiFi.macAddress();
-  macAddress.toUpperCase();
-  narf(macAddress.c_str(),0);
+  if(!macAddress.isEmpty())
+  {
+    macAddress.toUpperCase();
+    narf(macAddress.c_str(),1);
+  }
   String SSID_and_Enc=WiFi.SSID();
   wl_enc_type encryptionType=(wl_enc_type)(WiFi.encryptionType());
   String Enc=EncryptionTypeDisplayStrings[EncryptionTypeToCBIMap[encryptionType]];
   SSID_and_Enc+=" ["+Enc+"]";
-  narf(SSID_and_Enc.c_str(),1)
-  narf(WiFi.localIP().toString().c_str(),2);
-  narf(WiFi.subnetMask().toString().c_str(),3);
-  narf(WiFi.gatewayIP().toString().c_str(),4);
+  narf(SSID_and_Enc.c_str(),2)
+  narf(WiFi.localIP().toString().c_str(),3);
+  narf(WiFi.subnetMask().toString().c_str(),4);
+  narf(WiFi.gatewayIP().toString().c_str(),5);
   #undef narf
   lv_table_set_col_width(ip_info_table,0,150);
   lv_table_set_col_width(ip_info_table,1,300);
-
   lv_obj_t *WiFiStatus_Back_btn=lv_btn_create(obj);
   label=lv_label_create(WiFiStatus_Back_btn);
   lv_label_set_text(label,"Back");
