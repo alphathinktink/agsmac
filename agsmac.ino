@@ -133,6 +133,7 @@ String WiFi_ConfigTemp_Static_Gateway="";
 
 USBHostMSD msd;
 mbed::FATFileSystem usb("usb");
+volatile bool usb_mounted=false;
 
 void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
 {
@@ -1325,7 +1326,6 @@ void setup() {
 
   Display.begin();
   TouchDetector.begin();
-  DataLogStart();
 
   /* Create a container with grid 1x1 */
   static lv_coord_t col_dsc[] = {755, 755, LV_GRID_TEMPLATE_LAST};
@@ -1381,6 +1381,7 @@ void setup() {
     }
     lv_obj_del(WiFi_wait_sp);
   }
+  DataLogStart();
 
   DataLog("Start");
 
@@ -1519,30 +1520,47 @@ void DataLogStart(void)
 
   int err;
   
-  if(!msd.connect())
+  /*if(!msd.connect())
   {
+    Serial.println("msd.connect(); failed");
     return;
-  }
-  while(!msd.connect())
+  }*/
+  unsigned int timeout=2000;
+  while(!msd.connect() && timeout>0)
   {
     lv_timer_handler();
     delay(100);
+    timeout-=100;
+  }
+  if(timeout<=0)
+  {
+    Serial.println("Timeout during while(!msd.connect())");
+    return;
   }
 
-  while (!msd.connected()) {
+  timeout=2000;
+  while (!msd.connected() & timeout>0) {
     lv_timer_handler();
-    delay(1000);
+    delay(500);
+    timeout-=500;
   }
-
+  if(timeout<=0)
+  {
+    Serial.println("Timeout during while(!msd.connected())");
+    return;
+  }
 
   err = usb.mount(&msd);
   if (err) {
-    while (1) ;
+    Serial.println("usb.mount(&msd); failed");
+    return;
   }
+  usb_mounted=true;
 }
 
 void DataLog(const String &Text)
 {
+  if(!usb_mounted)return;
   int err;
   mbed::fs_file_t file;
   struct dirent *ent;
