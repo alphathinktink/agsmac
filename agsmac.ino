@@ -1378,13 +1378,13 @@ void setup() {
     if(WiFi_status==WL_CONNECTED)
     {
       setNtpTime();
-      DataLog("Synchronized NTP time.");    
     }
     lv_obj_del(WiFi_wait_sp);
   }
 
-  DisplayMainStatusPanel(obj);
   DataLog("Start");
+
+  DisplayMainStatusPanel(obj);
 }
 
 void loop() { 
