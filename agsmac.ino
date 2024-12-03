@@ -7,6 +7,8 @@
   use version 4.1.5 of the [Arduino Mbed OS Giga Boards] library.
   use version 8.3.11 of the [lvgl] library.
   use version 0.3.1 of the [Arduino_USBHostMbed5] library.
+
+
 */
 
 #include "Arduino_H7_Video.h"
@@ -1326,6 +1328,7 @@ void setup() {
 
   Display.begin();
   TouchDetector.begin();
+  DataLogStart();
 
   /* Create a container with grid 1x1 */
   static lv_coord_t col_dsc[] = {755, 755, LV_GRID_TEMPLATE_LAST};
@@ -1381,7 +1384,6 @@ void setup() {
     }
     lv_obj_del(WiFi_wait_sp);
   }
-  DataLogStart();
 
   DataLog("Start");
 
@@ -1520,11 +1522,6 @@ void DataLogStart(void)
 
   int err;
   
-  /*if(!msd.connect())
-  {
-    Serial.println("msd.connect(); failed");
-    return;
-  }*/
   unsigned int timeout=2000;
   while(!msd.connect() && timeout>0)
   {
@@ -1534,25 +1531,22 @@ void DataLogStart(void)
   }
   if(timeout<=0)
   {
-    Serial.println("Timeout during while(!msd.connect())");
     return;
   }
 
   timeout=2000;
-  while (!msd.connected() & timeout>0) {
+  while (!msd.connected() && timeout>0) {
     lv_timer_handler();
     delay(500);
     timeout-=500;
   }
   if(timeout<=0)
   {
-    Serial.println("Timeout during while(!msd.connected())");
     return;
   }
 
   err = usb.mount(&msd);
   if (err) {
-    Serial.println("usb.mount(&msd); failed");
     return;
   }
   usb_mounted=true;
