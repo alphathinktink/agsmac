@@ -1554,7 +1554,14 @@ void DataLogStart(void)
 
 void DataLog(const String &Text)
 {
-  if(!usb_mounted)return;
+  if(!usb_mounted)
+  {
+    DataLogStart();
+    if(!usb_mounted)
+    {
+      return;
+    }
+  };
   int err;
   mbed::fs_file_t file;
   struct dirent *ent;
