@@ -4,6 +4,7 @@
 #include <WiFiUdp.h>
 #include "mbed.h"
 #include <mbed_mktime.h>
+#include "lvgl.h"
 //------------------------------------------------------------------------------------------
 unsigned int localPort = 2390;
 const int NTP_PACKET_SIZE = 48;

@@ -1009,7 +1009,7 @@ void DisplayWiFiConfig4(lv_obj_t *obj,WiFiConfig4Callback callback)
   {
     if(callback)
     {
-      setNtpTime();
+      setNtpTime(timeServer);
       DataLog("Synchronized NTP time.");    
       callback(false);
     }
@@ -1368,7 +1368,7 @@ void setup() {
     }*/
     if(WiFi_status==WL_CONNECTED)
     {
-      setNtpTime();
+      setNtpTime(timeServer);
     }
     lv_obj_del(WiFi_wait_sp);
   }
