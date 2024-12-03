@@ -6,6 +6,8 @@
 #include <Arduino_USBHostMbed5.h>
 #include "lvgl.h"
 #include "Times.h"
+#include <WiFi.h>
+#include <WiFiSSLClient.h>
 //------------------------------------------------------------------------------------------
 USBHostMSD msd;
 mbed::FATFileSystem usb("usb");
@@ -74,5 +76,10 @@ void DataLog(const String &Text)
   if (err < 0) {
   } else {
   }
+}
+//------------------------------------------------------------------------------------------
+void SendLogs(const String &Server)
+{
+  //usb.rename("/usb/agsmac.log","/usb/agsmac_topush.log");
 }
 //------------------------------------------------------------------------------------------
