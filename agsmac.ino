@@ -19,17 +19,13 @@
 #include "KVStore.h"
 #include "kvstore_global_api.h"
 #include "mbed.h"
-#include <mbed_mktime.h>
 
 //#include <SPI.h>
 #include <WiFi.h>
-#include <WiFiUdp.h>
-
-#include <DigitalOut.h>
-#include <FATFileSystem.h>
-#include <Arduino_USBHostMbed5.h>
 
 #include "ValidateRoutines.h"
+#include "Logs.h"
+#include "Times.h"
 
 Arduino_H7_Video          Display(800, 480, GigaDisplayShield); /* Arduino_H7_Video Display(1024, 768, USBCVideo); */
 Arduino_GigaDisplayTouch  TouchDetector;
@@ -45,11 +41,7 @@ enum WiFi_IP_Method_enum_t{WiFi_IP_Method_DHCP=0,WiFi_IP_Method_Static=1};
 static String Debug_EventCodeToString(lv_event_code_t code);
 constexpr unsigned long printInterval { 1000 };
 unsigned long printNow {};
-unsigned int localPort = 2390;
 String timeServer("pool.ntp.org");
-const int NTP_PACKET_SIZE = 48;
-byte packetBuffer[NTP_PACKET_SIZE];
-WiFiUDP Udp;
 
 bool saveSetting(const String &Key,const String &Val)
 {
@@ -132,10 +124,6 @@ WiFi_IP_Method_enum_t WiFi_ConfigTemp_IP_Method=WiFi_IP_Method_DHCP;
 String WiFi_ConfigTemp_Static_IP="";
 String WiFi_ConfigTemp_Static_Netmask="";
 String WiFi_ConfigTemp_Static_Gateway="";
-
-USBHostMSD msd;
-mbed::FATFileSystem usb("usb");
-volatile bool usb_mounted=false;
 
 void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
 {
@@ -1075,7 +1063,7 @@ void NTPServer_Apply_btn_event_cb(lv_event_t * event)
     lv_obj_t * WiFi_wait_sp=lv_spinner_create(WiFi_Config_Display_obj,800,240);
     lv_obj_align_to(WiFi_wait_sp,WiFi_Config_Display_obj,LV_ALIGN_CENTER,0,0);
     lv_refr_now(NULL);
-    setNtpTime();
+    setNtpTime(timeServer);
     DataLog("Synchronized NTP time.");    
     DisplayMainStatusPanel(WiFi_Config_Display_obj);
     return;
@@ -1457,138 +1445,4 @@ static String Debug_EventCodeToString(lv_event_code_t code)
   }
   #undef narf
   return Res;
-}
-
-String getLocaltime()
-{
-    char buffer[32];
-    tm t;
-    _rtc_localtime(time(NULL), &t, RTC_4_YEAR_LEAP_YEAR_SUPPORT);
-    //lv_label_set_text(label,"11/22/2024 7:27 PM");
-    strftime(buffer, 32, "%m/%d/%Y %I:%M:%S%p", &t);
-    String Res=String(buffer);
-    Res+=" UTC";
-    return Res;
-}
-
-void setNtpTime(void)
-{
-    Udp.begin(localPort);
-    sendNTPpacket(timeServer.c_str());
-    for(int i=0;i<1000;i+=100)
-    {
-      lv_timer_handler();
-      delay(100);
-    }
-    parseNtpPacket();
-    Udp.stop();
-}
-unsigned long sendNTPpacket(const char * address)
-{
-    memset(packetBuffer, 0, NTP_PACKET_SIZE);
-    packetBuffer[0] = 0b11100011; // LI, Version, Mode
-    packetBuffer[1] = 0; // Stratum, or type of clock
-    packetBuffer[2] = 6; // Polling Interval
-    packetBuffer[3] = 0xEC; // Peer Clock Precision
-    // 8 bytes of zero for Root Delay & Root Dispersion
-    packetBuffer[12] = 49;
-    packetBuffer[13] = 0x4E;
-    packetBuffer[14] = 49;
-    packetBuffer[15] = 52;
-
-    Udp.beginPacket(address, 123); // NTP requests are to port 123
-    Udp.write(packetBuffer, NTP_PACKET_SIZE);
-    Udp.endPacket();
-}
-unsigned long parseNtpPacket(void)
-{
-    if (!Udp.parsePacket())
-        return 0;
-
-    Udp.read(packetBuffer, NTP_PACKET_SIZE);
-    const unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-    const unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-    const unsigned long secsSince1900 = highWord << 16 | lowWord;
-    constexpr unsigned long seventyYears = 2208988800UL;
-    const unsigned long epoch = secsSince1900 - seventyYears;
-    set_time(epoch);
-    return epoch;
-}
-
-void DataLogStart(void)
-{
-  pinMode(PA_15, OUTPUT); //enable the USB-A port
-  digitalWrite(PA_15, HIGH);
-
-  int err;
-  
-  unsigned int timeout=2000;
-  while(!msd.connect() && timeout>0)
-  {
-    lv_timer_handler();
-    delay(100);
-    timeout-=100;
-  }
-  if(timeout<=0)
-  {
-    return;
-  }
-
-  timeout=2000;
-  while (!msd.connected() && timeout>0) {
-    lv_timer_handler();
-    delay(500);
-    timeout-=500;
-  }
-  if(timeout<=0)
-  {
-    return;
-  }
-
-  err = usb.mount(&msd);
-  if (err) {
-    return;
-  }
-  usb_mounted=true;
-}
-
-void DataLog(const String &Text)
-{
-  if(!usb_mounted)
-  {
-    DataLogStart();
-    if(!usb_mounted)
-    {
-      return;
-    }
-  };
-  int err;
-  mbed::fs_file_t file;
-  struct dirent *ent;
-  int dirIndex = 0;
-  int res = 0;
-
-  String CurTime=getLocaltime();
-
-  String Line=CurTime+"\t"+Text+"\n";
-
-  FILE *f = fopen("/usb/agsmac.log", "a+");
-
-  if(f==NULL)
-  {
-    return;
-  }
-
-  fflush(stdout);
-
-  fseek(f,0,SEEK_END);
-
-  fprintf(f, Line.c_str());
-
-  fflush(stdout);
-  err = fclose(f);
-
-  if (err < 0) {
-  } else {
-  }
 }
