@@ -1313,6 +1313,8 @@ void setup() {
   }
   
   Serial.begin(115200);
+  byte mac[]={0x00,0x00,0x00,0x00,0x00,0x00};
+  void *narf=WiFi.macAddress(mac);
 
   Display.begin();
   TouchDetector.begin();
