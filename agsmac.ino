@@ -26,6 +26,7 @@
 #include "ValidateRoutines.h"
 #include "Logs.h"
 #include "Times.h"
+#include "SerialNumber.h"
 
 Arduino_H7_Video          Display(800, 480, GigaDisplayShield); /* Arduino_H7_Video Display(1024, 768, USBCVideo); */
 Arduino_GigaDisplayTouch  TouchDetector;
@@ -1376,6 +1377,9 @@ void setup() {
   }
 
   DataLog("Start");
+  String SN=GetSerialNumber();
+  DataLog("SN: "+SN);
+  Serial.println("SN: "+SN);
 
   DisplayMainStatusPanel(obj);
 }
