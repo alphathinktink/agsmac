@@ -1287,6 +1287,10 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
 }
 
 void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  Serial.println("Setup/startup");
+
   String Temp=loadSetting("WiFi_encryptionType");
   WiFi_encryptionType=(wl_enc_type)(Temp.toInt());
 
@@ -1312,10 +1316,6 @@ void setup() {
     timeServer=Temp;
   }
   
-  Serial.begin(115200);
-  byte mac[]={0x00,0x00,0x00,0x00,0x00,0x00};
-  void *narf=WiFi.macAddress(mac);
-
   Display.begin();
   TouchDetector.begin();
   DataLogStart();
