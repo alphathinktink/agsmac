@@ -1288,9 +1288,8 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
 }
 
 void setup() {
-  Serial.begin(115200);
+  //Serial.begin(115200);
   delay(1000);
-  Serial.println("Setup/startup");
 
   String Temp=loadSetting("WiFi_encryptionType");
   WiFi_encryptionType=(wl_enc_type)(Temp.toInt());
@@ -1379,7 +1378,6 @@ void setup() {
   DataLog("Start");
   String SN=GetSerialNumber();
   DataLog("SN: "+SN);
-  Serial.println("SN: "+SN);
 
   DisplayMainStatusPanel(obj);
 }
