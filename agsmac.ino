@@ -44,7 +44,7 @@ constexpr unsigned long printInterval { 1000 };
 unsigned long printNow {};
 String timeServer("pool.ntp.org");
 
-bool saveSetting(const String &Key,const String &Val)
+bool saveStringSetting(const String &Key,const String &Val)
 {
   int ret = kv_set(Key.c_str(), Val.c_str(), Val.length(), 0);
   if (ret != MBED_SUCCESS) {
@@ -54,7 +54,7 @@ bool saveSetting(const String &Key,const String &Val)
   }
 }
 
-String loadSetting(const String &Key)
+String loadStringSetting(const String &Key)
 {
   char buffer[256];  // Adjust size as needed
   memset(buffer,0,sizeof(buffer));
@@ -163,14 +163,14 @@ void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
         narf(Static_Netmask)
         narf(Static_Gateway)
         #undef narf
-        saveSetting("WiFi_encryptionType",String((int)WiFi_encryptionType));
-        saveSetting("WiFi_SSID",WiFi_SSID);
-        saveSetting("WiFi_Pass",WiFi_Pass);
-        saveSetting("WiFi_keyIndex",String((int)WiFi_keyIndex));
-        saveSetting("WiFi_IP_Method",String((int)WiFi_IP_Method));
-        saveSetting("WiFi_Static_IP",WiFi_Static_IP);
-        saveSetting("WiFi_Static_Netmask",WiFi_Static_Netmask);
-        saveSetting("WiFi_Static_Gateway",WiFi_Static_Gateway);
+        saveStringSetting("WiFi_encryptionType",String((int)WiFi_encryptionType));
+        saveStringSetting("WiFi_SSID",WiFi_SSID);
+        saveStringSetting("WiFi_Pass",WiFi_Pass);
+        saveStringSetting("WiFi_keyIndex",String((int)WiFi_keyIndex));
+        saveStringSetting("WiFi_IP_Method",String((int)WiFi_IP_Method));
+        saveStringSetting("WiFi_Static_IP",WiFi_Static_IP);
+        saveStringSetting("WiFi_Static_Netmask",WiFi_Static_Netmask);
+        saveStringSetting("WiFi_Static_Gateway",WiFi_Static_Gateway);
         DisplayMainStatusPanel(WiFi_Config_Display_obj);
         break;
       }
@@ -1050,12 +1050,12 @@ void NTPServer_Apply_btn_event_cb(lv_event_t * event)
     String Temp=lv_textarea_get_text(NTP_Server_ta);
     if(!Temp.isEmpty() && Temp!="")
     {
-      saveSetting("timeServer",Temp);
+      saveStringSetting("timeServer",Temp);
       timeServer=Temp;
     }
     else
     {
-      saveSetting("timeServer","pool.ntp.org");
+      saveStringSetting("timeServer","pool.ntp.org");
       timeServer="pool.ntp.org";
       lv_textarea_set_text(NTP_Server_ta,"pool.ntp.org");
     }
@@ -1281,6 +1281,14 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
   lv_label_set_text(label,Temp.c_str());
   DateTimeDisplay_lbl=label;
 
+  label=lv_label_create(obj);
+  lv_obj_align(label,LV_ALIGN_BOTTOM_RIGHT,0,0);
+  Temp=GetSerialNumber();
+  if(!Temp.isEmpty())
+  {
+    lv_label_set_text(label,Temp.c_str());
+  }
+
   lv_obj_add_event_cb(lv_WiFiConfig_btn,MainStatus_WiFiConfig_btn_event_cb,LV_EVENT_ALL,NULL);
   lv_obj_add_event_cb(lv_WiFiStatus_btn,MainStatus_WiFiStatus_btn_event_cb,LV_EVENT_ALL,NULL);
   lv_obj_add_event_cb(lv_NTPServer_btn,MainStatus_NTPServer_btn_event_cb,LV_EVENT_ALL,NULL);
@@ -1291,26 +1299,26 @@ void setup() {
   //Serial.begin(115200);
   delay(1000);
 
-  String Temp=loadSetting("WiFi_encryptionType");
+  String Temp=loadStringSetting("WiFi_encryptionType");
   WiFi_encryptionType=(wl_enc_type)(Temp.toInt());
 
-  WiFi_SSID=loadSetting("WiFi_SSID");
+  WiFi_SSID=loadStringSetting("WiFi_SSID");
 
-  WiFi_Pass=loadSetting("WiFi_Pass");
+  WiFi_Pass=loadStringSetting("WiFi_Pass");
 
-  Temp=loadSetting("WiFi_keyIndex");
+  Temp=loadStringSetting("WiFi_keyIndex");
   WiFi_keyIndex=(int)(Temp.toInt());
 
-  Temp=loadSetting("WiFi_IP_Method");
+  Temp=loadStringSetting("WiFi_IP_Method");
   WiFi_IP_Method=(WiFi_IP_Method_enum_t)(Temp.toInt());
 
-  WiFi_Static_IP=loadSetting("WiFi_Static_IP");
+  WiFi_Static_IP=loadStringSetting("WiFi_Static_IP");
 
-  WiFi_Static_Netmask=loadSetting("WiFi_Static_Netmask");
+  WiFi_Static_Netmask=loadStringSetting("WiFi_Static_Netmask");
 
-  WiFi_Static_Gateway=loadSetting("WiFi_Static_Gateway");
+  WiFi_Static_Gateway=loadStringSetting("WiFi_Static_Gateway");
 
-  Temp=loadSetting("timeServer");
+  Temp=loadStringSetting("timeServer");
   if(!Temp.isEmpty() && Temp!="")
   {
     timeServer=Temp;
