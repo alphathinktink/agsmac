@@ -15,6 +15,7 @@
 #include "Arduino_GigaDisplayTouch.h"
 
 #include "lvgl.h"
+#include "extra/libs/qrcode/lv_qrcode.h"
 
 #include "KVStore.h"
 #include "kvstore_global_api.h"
@@ -82,6 +83,8 @@ const int EncryptionTypeToCBIMap[]={5,5,1,5,2,0,3,4,6,5};
 const char * WiFi_IP_Method_DisplayStrings[]={"DHCP(Automatic)","Static (Manual)"};
 const WiFi_IP_Method_enum_t WiFi_IP_Method_DisplayMap[]={WiFi_IP_Method_DHCP,WiFi_IP_Method_Static};
 const int WiFi_IP_Method_ToCBIMap[]={0,1};
+
+static lv_color_t *lv_QR_canvas_buffer=NULL;
 
 lv_obj_t * WiFi_Config_Display_obj=NULL;
 lv_obj_t * WiFi_scan_list=NULL;
@@ -1281,13 +1284,28 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
   lv_label_set_text(label,Temp.c_str());
   DateTimeDisplay_lbl=label;
 
-  label=lv_label_create(obj);
-  lv_obj_align(label,LV_ALIGN_BOTTOM_RIGHT,0,0);
+  lv_obj_t *lv_SN_label=lv_label_create(obj);
+  lv_obj_align(lv_SN_label,LV_ALIGN_BOTTOM_RIGHT,0,0);
   Temp=GetSerialNumber();
   if(!Temp.isEmpty())
   {
-    lv_label_set_text(label,Temp.c_str());
+    lv_label_set_text(lv_SN_label,Temp.c_str());
   }
+
+  /*int w=100;
+  int h=100;
+  if(lv_QR_canvas_buffer==NULL)
+  {
+    lv_QR_canvas_buffer=(lv_color_t *)(lv_mem_alloc(LV_CANVAS_BUF_SIZE_TRUE_COLOR(w,h)));
+  }
+  lv_obj_t *lv_QR_canvas=lv_canvas_create(obj);
+  lv_canvas_set_buffer(lv_QR_canvas,lv_QR_canvas_buffer,w,h,LV_IMG_CF_TRUE_COLOR);
+  lv_canvas_fill_bg(lv_QR_canvas, lv_palette_lighten(LV_PALETTE_GREY, 3), LV_OPA_COVER);
+  lv_obj_align_to(lv_QR_canvas,lv_SN_label,LV_ALIGN_OUT_TOP_MID,0,0);*/
+
+  lv_obj_t *lv_SN_qrcode=lv_qrcode_create(obj,100,lv_color_hex3(0x000),lv_color_hex3(0xFFF));
+  lv_qrcode_update(lv_SN_qrcode, Temp.c_str(), Temp.length());
+  lv_obj_align_to(lv_SN_qrcode,lv_SN_label,LV_ALIGN_OUT_TOP_MID,0,0);
 
   lv_obj_add_event_cb(lv_WiFiConfig_btn,MainStatus_WiFiConfig_btn_event_cb,LV_EVENT_ALL,NULL);
   lv_obj_add_event_cb(lv_WiFiStatus_btn,MainStatus_WiFiStatus_btn_event_cb,LV_EVENT_ALL,NULL);
