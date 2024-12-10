@@ -1,4 +1,3 @@
-
 /*
   agsmac by Leonard W. Bogard
 
@@ -11,11 +10,13 @@
 
 */
 
+#include "lv_conf_qrcode.h"
+
 #include "Arduino_H7_Video.h"
 #include "Arduino_GigaDisplayTouch.h"
 
 #include "lvgl.h"
-#include "extra/libs/qrcode/lv_qrcode.h"
+//#include "extra/libs/qrcode/lv_qrcode.h"
 
 #include "KVStore.h"
 #include "kvstore_global_api.h"
