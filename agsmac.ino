@@ -7,23 +7,21 @@
   use version 8.3.11 of the [lvgl] library.
   use version 0.3.1 of the [Arduino_USBHostMbed5] library.
 
-  copy $DOCUMENTS$\Arduino\libraries\lvgl\lv_conf_template.h into new folder $DOCUMENTS$\Arduino\libraries\lvgl_qrcode\lv_conf.h
+  copy $DOCUMENTS$\Arduino\libraries\lvgl\lv_conf_template.h into new folder $DOCUMENTS$\Arduino\libraries\lvgl_qrcode\ and rename it lv_conf.h
   modify $DOCUMENTS$\Arduino\libraries\lvgl_qrcode\lv_conf.h defines:
     LV_USE_QRCODE to 1
     at the top find "#if 0 /*Set it to "1" to enable content*/
       /*" and change it to 1 from 0
   create empty file lv_conf_qrcode.h inside of $DOCUMENTS$\Arduino\libraries\lvgl_qrcode\
+  file edits in library folders require IDE restart.
+
 */
-
-#define LV_CONF_INCLUDE_SIMPLE 1
-
-#include "lv_conf_qrcode.h"
 
 #include "Arduino_H7_Video.h"
 #include "Arduino_GigaDisplayTouch.h"
 
 #include "lvgl.h"
-//#include "extra/libs/qrcode/lv_qrcode.h"
+#include "extra/libs/qrcode/qrcodegen.h"
 
 #include "KVStore.h"
 #include "kvstore_global_api.h"
@@ -88,13 +86,13 @@ const char * EncryptionTypeDisplayStrings[]={"WEP","WPA/TKIP","WPA2/CCMP","WPA3/
 const wl_enc_type EncryptionTypeDisplayMap[]={ENC_TYPE_WEP,ENC_TYPE_WPA,ENC_TYPE_WPA2,ENC_TYPE_WPA3,ENC_TYPE_NONE,ENC_TYPE_UNKNOWN,ENC_TYPE_AUTO};
 const int EncryptionTypeToCBIMap[]={5,5,1,5,2,0,3,4,6,5};
 
-const char * WiFi_IP_Method_DisplayStrings[]={"DHCP(Automatic)","Static (Manual)"};
+const char * WiFi_IP_Method_DisplayStrings[]={"DHCP (Automatic)","Static (Manual)"};
 const WiFi_IP_Method_enum_t WiFi_IP_Method_DisplayMap[]={WiFi_IP_Method_DHCP,WiFi_IP_Method_Static};
 const int WiFi_IP_Method_ToCBIMap[]={0,1};
 
 static lv_color_t *lv_QR_canvas_buffer=NULL;
 
-lv_obj_t * WiFi_Config_Display_obj=NULL;
+lv_obj_t * Display_obj=NULL;
 lv_obj_t * WiFi_scan_list=NULL;
 lv_obj_t * WiFi_Rescan_btn=NULL;
 lv_obj_t * WiFi_SSID_ta=NULL;
@@ -137,6 +135,8 @@ String WiFi_ConfigTemp_Static_IP="";
 String WiFi_ConfigTemp_Static_Netmask="";
 String WiFi_ConfigTemp_Static_Gateway="";
 
+static String SerialNumber="";
+
 void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
 {
   lv_event_code_t code = lv_event_get_code(event);
@@ -155,12 +155,12 @@ void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
       {
         case 0://Abort
         lv_msgbox_close(current_target);
-        DisplayMainStatusPanel(WiFi_Config_Display_obj);
+        DisplayMainStatusPanel(Display_obj);
         return;
         case 1://Start Over
         lv_msgbox_close(current_target);
-        lv_obj_clean(WiFi_Config_Display_obj);
-        DisplayWiFiConfig1(WiFi_Config_Display_obj,WiFi_SSID,WiFi_config1_callback);
+        lv_obj_clean(Display_obj);
+        DisplayWiFiConfig1(Display_obj,WiFi_SSID,WiFi_config1_callback);
         return;
         case 2://Apply
         lv_msgbox_close(current_target);
@@ -182,7 +182,7 @@ void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
         saveStringSetting("WiFi_Static_IP",WiFi_Static_IP);
         saveStringSetting("WiFi_Static_Netmask",WiFi_Static_Netmask);
         saveStringSetting("WiFi_Static_Gateway",WiFi_Static_Gateway);
-        DisplayMainStatusPanel(WiFi_Config_Display_obj);
+        DisplayMainStatusPanel(Display_obj);
         break;
       }
     }
@@ -193,8 +193,8 @@ void WiFi_config4_callback_mbox_event_cb(lv_event_t * event)
 void WiFi_config4_callback(bool IsBack)
 {
   lv_refr_now(NULL);
-  lv_obj_clean(WiFi_Config_Display_obj);
-  lv_obj_t *ip_info_table=lv_table_create(WiFi_Config_Display_obj);
+  lv_obj_clean(Display_obj);
+  lv_obj_t *ip_info_table=lv_table_create(Display_obj);
   #define narf(t,r) lv_table_set_cell_value(ip_info_table,r,0,t);
   narf("Mac Address",0);
   narf("IP",1);
@@ -692,31 +692,31 @@ void WiFi_config1_callback(bool IsCancel)
 {
   if(IsCancel)
   {
-    DisplayMainStatusPanel(WiFi_Config_Display_obj);
+    DisplayMainStatusPanel(Display_obj);
     return;
   }
-  lv_obj_clean(WiFi_Config_Display_obj);
+  lv_obj_clean(Display_obj);
   bool DontNeedSSID=true;
   if(WiFi_ConfigTemp_SSID.isEmpty() || strcmp(WiFi_ConfigTemp_SSID.c_str(),"")==0)
   {
     DontNeedSSID=false;
   }
-  DisplayWiFiConfig2(WiFi_Config_Display_obj,WiFi_ConfigTemp_encryptionType,DontNeedSSID,WiFi_ConfigTemp_SSID,WiFi_ConfigTemp_Pass,WiFi_ConfigTemp_keyIndex,WiFi_config2_callback);
+  DisplayWiFiConfig2(Display_obj,WiFi_ConfigTemp_encryptionType,DontNeedSSID,WiFi_ConfigTemp_SSID,WiFi_ConfigTemp_Pass,WiFi_ConfigTemp_keyIndex,WiFi_config2_callback);
 }
 
 void WiFi_config2_callback(bool IsBack)
 {
   if(IsBack)
   {
-    lv_obj_clean(WiFi_Config_Display_obj);
-    DisplayWiFiConfig1(WiFi_Config_Display_obj,WiFi_SSID,WiFi_config1_callback);
+    lv_obj_clean(Display_obj);
+    DisplayWiFiConfig1(Display_obj,WiFi_SSID,WiFi_config1_callback);
     return;
   }
   else
   {
-    lv_obj_clean(WiFi_Config_Display_obj);
+    lv_obj_clean(Display_obj);
     lv_refr_now(NULL);
-    DisplayWiFiConfig3(WiFi_Config_Display_obj,WiFi_ConfigTemp_IP_Method,WiFi_ConfigTemp_Static_IP,WiFi_ConfigTemp_Static_Netmask,WiFi_ConfigTemp_Static_Gateway,WiFi_config3_callback);
+    DisplayWiFiConfig3(Display_obj,WiFi_ConfigTemp_IP_Method,WiFi_ConfigTemp_Static_IP,WiFi_ConfigTemp_Static_Netmask,WiFi_ConfigTemp_Static_Gateway,WiFi_config3_callback);
     return;
   }
 }
@@ -724,7 +724,7 @@ void WiFi_config2_callback(bool IsBack)
 void WiFi_config3_callback(bool IsBack)
 {
   lv_refr_now(NULL);
-  lv_obj_clean(WiFi_Config_Display_obj);
+  lv_obj_clean(Display_obj);
   bool DontNeedSSID=true;
   if(WiFi_ConfigTemp_SSID.isEmpty() || strcmp(WiFi_ConfigTemp_SSID.c_str(),"")==0)
   {
@@ -732,11 +732,11 @@ void WiFi_config3_callback(bool IsBack)
   }
   if(IsBack)
   {
-    DisplayWiFiConfig2(WiFi_Config_Display_obj,WiFi_ConfigTemp_encryptionType,DontNeedSSID,WiFi_ConfigTemp_SSID,WiFi_ConfigTemp_Pass,WiFi_ConfigTemp_keyIndex,WiFi_config2_callback);
+    DisplayWiFiConfig2(Display_obj,WiFi_ConfigTemp_encryptionType,DontNeedSSID,WiFi_ConfigTemp_SSID,WiFi_ConfigTemp_Pass,WiFi_ConfigTemp_keyIndex,WiFi_config2_callback);
   }
   else
   {
-    DisplayWiFiConfig4(WiFi_Config_Display_obj,WiFi_config4_callback);
+    DisplayWiFiConfig4(Display_obj,WiFi_config4_callback);
   }
 }
 
@@ -1071,13 +1071,13 @@ void NTPServer_Apply_btn_event_cb(lv_event_t * event)
       lv_textarea_set_text(NTP_Server_ta,"pool.ntp.org");
     }
     DataLog("Time server set to: "+timeServer);
-    lv_obj_clean(WiFi_Config_Display_obj);
-    lv_obj_t * WiFi_wait_sp=lv_spinner_create(WiFi_Config_Display_obj,800,240);
-    lv_obj_align_to(WiFi_wait_sp,WiFi_Config_Display_obj,LV_ALIGN_CENTER,0,0);
+    lv_obj_clean(Display_obj);
+    lv_obj_t * WiFi_wait_sp=lv_spinner_create(Display_obj,800,240);
+    lv_obj_align_to(WiFi_wait_sp,Display_obj,LV_ALIGN_CENTER,0,0);
     lv_refr_now(NULL);
     setNtpTime(timeServer);
     DataLog("Synchronized NTP time.");    
-    DisplayMainStatusPanel(WiFi_Config_Display_obj);
+    DisplayMainStatusPanel(Display_obj);
     return;
   }
 }
@@ -1090,7 +1090,7 @@ void NTPServer_Cancel_btn_event_cb(lv_event_t * event)
   switch(code)
   {
     case LV_EVENT_CLICKED:
-    DisplayMainStatusPanel(WiFi_Config_Display_obj);
+    DisplayMainStatusPanel(Display_obj);
     return;
   }
 }
@@ -1135,8 +1135,8 @@ void MainStatus_WiFiConfig_btn_event_cb(lv_event_t * event)
   switch(code)
   {
     case LV_EVENT_CLICKED:
-    lv_obj_clean(WiFi_Config_Display_obj);
-    DisplayWiFiConfig1(WiFi_Config_Display_obj,WiFi_SSID,WiFi_config1_callback);
+    lv_obj_clean(Display_obj);
+    DisplayWiFiConfig1(Display_obj,WiFi_SSID,WiFi_config1_callback);
     return;
   }
 
@@ -1150,8 +1150,8 @@ void MainStatus_WiFiStatus_btn_event_cb(lv_event_t * event)
   switch(code)
   {
     case LV_EVENT_CLICKED:
-    lv_obj_clean(WiFi_Config_Display_obj);
-    DisplayWiFiStatusPanel(WiFi_Config_Display_obj);
+    lv_obj_clean(Display_obj);
+    DisplayWiFiStatusPanel(Display_obj);
     return;
   }
 }
@@ -1164,8 +1164,8 @@ void MainStatus_NTPServer_btn_event_cb(lv_event_t * event)
   switch(code)
   {
     case LV_EVENT_CLICKED:
-    lv_obj_clean(WiFi_Config_Display_obj);
-    DisplayNTPServerConfig(WiFi_Config_Display_obj);
+    lv_obj_clean(Display_obj);
+    DisplayNTPServerConfig(Display_obj);
     return;
   }
 }
@@ -1178,7 +1178,7 @@ void WiFiStatus_Back_btn_event_cb(lv_event_t *event)
   switch(code)
   {
     case LV_EVENT_CLICKED:
-    DisplayMainStatusPanel(WiFi_Config_Display_obj);
+    DisplayMainStatusPanel(Display_obj);
     return;
   }
 }
@@ -1211,7 +1211,7 @@ void DisplayWiFiStatusPanel(lv_obj_t *obj)
     #undef narf
   }
 
-  lv_obj_t *ip_info_table=lv_table_create(WiFi_Config_Display_obj);
+  lv_obj_t *ip_info_table=lv_table_create(Display_obj);
   #define narf(t,r) lv_table_set_cell_value(ip_info_table,r,0,t);
   narf("Status",0);
   narf("Mac Address",1);
@@ -1294,14 +1294,14 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
 
   lv_obj_t *lv_SN_label=lv_label_create(obj);
   lv_obj_align(lv_SN_label,LV_ALIGN_BOTTOM_RIGHT,0,0);
-  Temp=GetSerialNumber();
-  if(!Temp.isEmpty())
+  SerialNumber=GetSerialNumber();
+  if(!SerialNumber.isEmpty())
   {
-    lv_label_set_text(lv_SN_label,Temp.c_str());
+    lv_label_set_text(lv_SN_label,SerialNumber.c_str());
   }
 
-  /*int w=100;
-  int h=100;
+  int w=105;
+  int h=105;
   if(lv_QR_canvas_buffer==NULL)
   {
     lv_QR_canvas_buffer=(lv_color_t *)(lv_mem_alloc(LV_CANVAS_BUF_SIZE_TRUE_COLOR(w,h)));
@@ -1309,11 +1309,63 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
   lv_obj_t *lv_QR_canvas=lv_canvas_create(obj);
   lv_canvas_set_buffer(lv_QR_canvas,lv_QR_canvas_buffer,w,h,LV_IMG_CF_TRUE_COLOR);
   lv_canvas_fill_bg(lv_QR_canvas, lv_palette_lighten(LV_PALETTE_GREY, 3), LV_OPA_COVER);
-  lv_obj_align_to(lv_QR_canvas,lv_SN_label,LV_ALIGN_OUT_TOP_MID,0,0);*/
+  lv_obj_align_to(lv_QR_canvas,lv_SN_label,LV_ALIGN_OUT_TOP_MID,0,0);/**/
 
-  lv_obj_t *lv_SN_qrcode=lv_qrcode_create(obj,100,lv_color_hex3(0x000),lv_color_hex3(0xFFF));
-  lv_qrcode_update(lv_SN_qrcode, Temp.c_str(), Temp.length());
-  lv_obj_align_to(lv_SN_qrcode,lv_SN_label,LV_ALIGN_OUT_TOP_MID,0,0);
+  lv_color_t bg_color=lv_color_hex3(0xFFF);
+  lv_color_t fg_color=lv_color_hex3(0x000);
+
+  uint8_t qrcode[qrcodegen_BUFFER_LEN_MAX];
+  uint8_t tempBuffer[qrcodegen_BUFFER_LEN_MAX];
+  bool qrSuc=qrcodegen_encodeText(
+    SerialNumber.c_str(),
+    tempBuffer,
+    qrcode,
+    qrcodegen_Ecc_LOW,
+    qrcodegen_VERSION_MIN,
+    qrcodegen_VERSION_MAX,
+    qrcodegen_Mask_AUTO,
+    true
+  );
+  if(qrSuc)
+  {
+    int qrSize=qrcodegen_getSize(qrcode);
+    int markWidth=w/qrSize;
+    int markHeight=h/qrSize;
+    lv_draw_rect_dsc_t onDsc;
+    lv_draw_rect_dsc_t offDsc;
+    lv_draw_rect_dsc_init(&onDsc);
+    lv_draw_rect_dsc_init(&offDsc);
+    onDsc.bg_color=fg_color;
+    offDsc.bg_color=bg_color;
+    onDsc.bg_opa=255;
+    offDsc.bg_opa=255;
+    onDsc.border_color=fg_color;
+    offDsc.border_color=bg_color;
+    onDsc.border_width=0;
+    offDsc.border_width=0;
+    for(int y=0;y<qrSize;y++)
+    {
+      for(int x=0;x<qrSize;x++)
+      {
+        bool mark=qrcodegen_getModule(qrcode,x,y);
+        if(mark)
+        {
+          lv_canvas_draw_rect(lv_QR_canvas,x*markWidth,y*markHeight,markWidth,markHeight,&onDsc);
+          Serial.print("X");
+        }
+        else
+        {
+          lv_canvas_draw_rect(lv_QR_canvas,x*markWidth,y*markHeight,markWidth,markHeight,&offDsc);
+          Serial.print(" ");
+        }
+      }
+      Serial.println("-");
+    }
+  }
+  
+  /*lv_obj_t *lv_SN_qrcode=lv_qrcode_create(obj,105,fg_color,bg_color);
+  lv_qrcode_update(lv_SN_qrcode, SerialNumber.c_str(), SerialNumber.length());
+  lv_obj_align_to(lv_SN_qrcode,lv_SN_label,LV_ALIGN_OUT_TOP_MID,0,0);*/
 
   lv_obj_add_event_cb(lv_WiFiConfig_btn,MainStatus_WiFiConfig_btn_event_cb,LV_EVENT_ALL,NULL);
   lv_obj_add_event_cb(lv_WiFiStatus_btn,MainStatus_WiFiStatus_btn_event_cb,LV_EVENT_ALL,NULL);
@@ -1322,8 +1374,9 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
 }
 
 void setup() {
-  //Serial.begin(115200);
+  Serial.begin(115200);
   delay(1000);
+  Serial.println("Setup");
 
   String Temp=loadStringSetting("WiFi_encryptionType");
   WiFi_encryptionType=(wl_enc_type)(Temp.toInt());
@@ -1349,10 +1402,14 @@ void setup() {
   {
     timeServer=Temp;
   }
+
+  Serial.println(__LINE__);
   
   Display.begin();
   TouchDetector.begin();
   DataLogStart();
+
+  Serial.println(__LINE__);
 
   /* Create a container with grid 1x1 */
   static lv_coord_t col_dsc[] = {755, 755, LV_GRID_TEMPLATE_LAST};
@@ -1363,6 +1420,8 @@ void setup() {
   lv_obj_set_style_bg_color(cont, lv_color_hex(0x03989e), LV_PART_MAIN);
   lv_obj_center(cont);
 
+  Serial.println(__LINE__);
+
   lv_obj_t * label;
   lv_obj_t * obj;
 
@@ -1370,10 +1429,13 @@ void setup() {
   lv_obj_set_grid_cell(obj, LV_GRID_ALIGN_STRETCH, 0, 1,
                         LV_GRID_ALIGN_STRETCH, 0, 1);
 
-  WiFi_Config_Display_obj=obj;
+  Display_obj=obj;
+
+  Serial.println(__LINE__);
 
   if(WiFi_SSID!="" && !WiFi_SSID.isEmpty())
   {
+    Serial.println(WiFi_SSID);
     lv_obj_t * WiFi_wait_sp=lv_spinner_create(obj,800,240);
     lv_obj_align_to(WiFi_wait_sp,obj,LV_ALIGN_CENTER,0,0);
     lv_refr_now(NULL);
@@ -1409,11 +1471,16 @@ void setup() {
     lv_obj_del(WiFi_wait_sp);
   }
 
+  Serial.println(__LINE__);
+
   DataLog("Start");
   String SN=GetSerialNumber();
   DataLog("SN: "+SN);
 
+  Serial.println(__LINE__);
+
   DisplayMainStatusPanel(obj);
+  Serial.println(__LINE__);
 }
 
 void loop() { 
