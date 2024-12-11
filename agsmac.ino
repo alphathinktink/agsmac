@@ -7,8 +7,15 @@
   use version 8.3.11 of the [lvgl] library.
   use version 0.3.1 of the [Arduino_USBHostMbed5] library.
 
-
+  copy $DOCUMENTS$\Arduino\libraries\lvgl\lv_conf_template.h into new folder $DOCUMENTS$\Arduino\libraries\lvgl_qrcode\lv_conf.h
+  modify $DOCUMENTS$\Arduino\libraries\lvgl_qrcode\lv_conf.h defines:
+    LV_USE_QRCODE to 1
+    at the top find "#if 0 /*Set it to "1" to enable content*/
+      /*" and change it to 1 from 0
+  create empty file lv_conf_qrcode.h inside of $DOCUMENTS$\Arduino\libraries\lvgl_qrcode\
 */
+
+#define LV_CONF_INCLUDE_SIMPLE 1
 
 #include "lv_conf_qrcode.h"
 
