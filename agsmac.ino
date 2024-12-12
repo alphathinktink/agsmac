@@ -1261,6 +1261,47 @@ void DateTimeDisplay_lbl_event_cb(lv_event_t *event)
   }
 }
 
+void DisplayWiFiConnectingPanel(lv_obj_t *obj)
+{
+  lv_obj_clean(obj);
+  if(WiFi_SSID!="" && !WiFi_SSID.isEmpty())
+  {
+    lv_obj_t * WiFi_wait_sp=lv_spinner_create(obj,800,240);
+    lv_obj_align_to(WiFi_wait_sp,obj,LV_ALIGN_CENTER,0,0);
+    lv_refr_now(NULL);
+
+    switch(WiFi_IP_Method)
+    {
+      case WiFi_IP_Method_DHCP:
+      WiFi.config("");
+      break;
+      case WiFi_IP_Method_Static:
+      WiFi.config(WiFi_Static_IP.c_str(),WiFi_Static_Netmask.c_str(),WiFi_Static_Gateway.c_str());
+      break;
+    }
+    WiFi_status=WiFi.begin(WiFi_SSID.c_str(),WiFi_Pass.c_str(),WiFi_encryptionType);
+    /*if(WiFi_status!=WL_CONNECTED)
+    {
+      if(callback)
+      {
+        callback(true);
+      }
+    }
+    else
+    {
+      if(callback)
+      {
+        callback(false);
+      }
+    }*/
+    if(WiFi_status==WL_CONNECTED)
+    {
+      setNtpTime(timeServer);
+    }
+    lv_obj_del(WiFi_wait_sp);
+  }
+}
+
 void DisplayMainStatusPanel(lv_obj_t *obj)
 {
   lv_obj_clean(obj);
@@ -1351,15 +1392,12 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
         if(mark)
         {
           lv_canvas_draw_rect(lv_QR_canvas,x*markWidth,y*markHeight,markWidth,markHeight,&onDsc);
-          Serial.print("X");
         }
         else
         {
           lv_canvas_draw_rect(lv_QR_canvas,x*markWidth,y*markHeight,markWidth,markHeight,&offDsc);
-          Serial.print(" ");
         }
       }
-      Serial.println("-");
     }
   }
   
@@ -1376,7 +1414,6 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  Serial.println("Setup");
 
   String Temp=loadStringSetting("WiFi_encryptionType");
   WiFi_encryptionType=(wl_enc_type)(Temp.toInt());
@@ -1403,13 +1440,10 @@ void setup() {
     timeServer=Temp;
   }
 
-  Serial.println(__LINE__);
   
   Display.begin();
   TouchDetector.begin();
   DataLogStart();
-
-  Serial.println(__LINE__);
 
   /* Create a container with grid 1x1 */
   static lv_coord_t col_dsc[] = {755, 755, LV_GRID_TEMPLATE_LAST};
@@ -1420,8 +1454,6 @@ void setup() {
   lv_obj_set_style_bg_color(cont, lv_color_hex(0x03989e), LV_PART_MAIN);
   lv_obj_center(cont);
 
-  Serial.println(__LINE__);
-
   lv_obj_t * label;
   lv_obj_t * obj;
 
@@ -1431,56 +1463,13 @@ void setup() {
 
   Display_obj=obj;
 
-  Serial.println(__LINE__);
-
-  if(WiFi_SSID!="" && !WiFi_SSID.isEmpty())
-  {
-    Serial.println(WiFi_SSID);
-    lv_obj_t * WiFi_wait_sp=lv_spinner_create(obj,800,240);
-    lv_obj_align_to(WiFi_wait_sp,obj,LV_ALIGN_CENTER,0,0);
-    lv_refr_now(NULL);
-
-    switch(WiFi_IP_Method)
-    {
-      case WiFi_IP_Method_DHCP:
-      WiFi.config("");
-      break;
-      case WiFi_IP_Method_Static:
-      WiFi.config(WiFi_Static_IP.c_str(),WiFi_Static_Netmask.c_str(),WiFi_Static_Gateway.c_str());
-      break;
-    }
-    WiFi_status=WiFi.begin(WiFi_SSID.c_str(),WiFi_Pass.c_str(),WiFi_encryptionType);
-    /*if(WiFi_status!=WL_CONNECTED)
-    {
-      if(callback)
-      {
-        callback(true);
-      }
-    }
-    else
-    {
-      if(callback)
-      {
-        callback(false);
-      }
-    }*/
-    if(WiFi_status==WL_CONNECTED)
-    {
-      setNtpTime(timeServer);
-    }
-    lv_obj_del(WiFi_wait_sp);
-  }
-
-  Serial.println(__LINE__);
+  DisplayWiFiConnectingPanel(obj);
 
   DataLog("Start");
   String SN=GetSerialNumber();
   DataLog("SN: "+SN);
 
-  Serial.println(__LINE__);
-
   DisplayMainStatusPanel(obj);
-  Serial.println(__LINE__);
 }
 
 void loop() { 
@@ -1493,6 +1482,13 @@ void loop() {
       String Temp=getLocaltime();
       lv_label_set_text(DateTimeDisplay_lbl,Temp.c_str());
     }
+    WiFi_status=WiFi.status();
+    if(WiFi_status==WL_CONNECTION_LOST)
+    {
+      DisplayWiFiConnectingPanel(Display_obj);
+      DisplayMainStatusPanel(Display_obj);
+    }
+    //
     printNow = millis() + printInterval;
   }
 }
