@@ -7,14 +7,6 @@
   use version 8.3.11 of the [lvgl] library.
   use version 0.3.1 of the [Arduino_USBHostMbed5] library.
 
-  copy $DOCUMENTS$\Arduino\libraries\lvgl\lv_conf_template.h into new folder $DOCUMENTS$\Arduino\libraries\lvgl_qrcode\ and rename it lv_conf.h
-  modify $DOCUMENTS$\Arduino\libraries\lvgl_qrcode\lv_conf.h defines:
-    LV_USE_QRCODE to 1
-    at the top find "#if 0 /*Set it to "1" to enable content*/
-      /*" and change it to 1 from 0
-  create empty file lv_conf_qrcode.h inside of $DOCUMENTS$\Arduino\libraries\lvgl_qrcode\
-  file edits in library folders require IDE restart.
-
 */
 
 #include "Arduino_H7_Video.h"
@@ -1400,11 +1392,6 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
       }
     }
   }
-
-  
-  /*lv_obj_t *lv_SN_qrcode=lv_qrcode_create(obj,105,fg_color,bg_color);
-  lv_qrcode_update(lv_SN_qrcode, SerialNumber.c_str(), SerialNumber.length());
-  lv_obj_align_to(lv_SN_qrcode,lv_SN_label,LV_ALIGN_OUT_TOP_MID,0,0);*/
 
   lv_obj_add_event_cb(lv_WiFiConfig_btn,MainStatus_WiFiConfig_btn_event_cb,LV_EVENT_ALL,NULL);
   lv_obj_add_event_cb(lv_WiFiStatus_btn,MainStatus_WiFiStatus_btn_event_cb,LV_EVENT_ALL,NULL);
