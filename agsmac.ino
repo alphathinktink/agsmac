@@ -1339,67 +1339,68 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
   if(!SerialNumber.isEmpty())
   {
     lv_label_set_text(lv_SN_label,SerialNumber.c_str());
-  }
 
-  int w=105;
-  int h=105;
-  if(lv_QR_canvas_buffer==NULL)
-  {
-    lv_QR_canvas_buffer=(lv_color_t *)(lv_mem_alloc(LV_CANVAS_BUF_SIZE_TRUE_COLOR(w,h)));
-  }
-  lv_obj_t *lv_QR_canvas=lv_canvas_create(obj);
-  lv_canvas_set_buffer(lv_QR_canvas,lv_QR_canvas_buffer,w,h,LV_IMG_CF_TRUE_COLOR);
-  lv_canvas_fill_bg(lv_QR_canvas, lv_palette_lighten(LV_PALETTE_GREY, 3), LV_OPA_COVER);
-  lv_obj_align_to(lv_QR_canvas,lv_SN_label,LV_ALIGN_OUT_TOP_MID,0,0);/**/
-
-  lv_color_t bg_color=lv_color_hex3(0xFFF);
-  lv_color_t fg_color=lv_color_hex3(0x000);
-
-  uint8_t qrcode[qrcodegen_BUFFER_LEN_MAX];
-  uint8_t tempBuffer[qrcodegen_BUFFER_LEN_MAX];
-  bool qrSuc=qrcodegen_encodeText(
-    SerialNumber.c_str(),
-    tempBuffer,
-    qrcode,
-    qrcodegen_Ecc_LOW,
-    qrcodegen_VERSION_MIN,
-    qrcodegen_VERSION_MAX,
-    qrcodegen_Mask_AUTO,
-    true
-  );
-  if(qrSuc)
-  {
-    int qrSize=qrcodegen_getSize(qrcode);
-    int markWidth=w/qrSize;
-    int markHeight=h/qrSize;
-    lv_draw_rect_dsc_t onDsc;
-    lv_draw_rect_dsc_t offDsc;
-    lv_draw_rect_dsc_init(&onDsc);
-    lv_draw_rect_dsc_init(&offDsc);
-    onDsc.bg_color=fg_color;
-    offDsc.bg_color=bg_color;
-    onDsc.bg_opa=255;
-    offDsc.bg_opa=255;
-    onDsc.border_color=fg_color;
-    offDsc.border_color=bg_color;
-    onDsc.border_width=0;
-    offDsc.border_width=0;
-    for(int y=0;y<qrSize;y++)
+    int w=105;
+    int h=105;
+    if(lv_QR_canvas_buffer==NULL)
     {
-      for(int x=0;x<qrSize;x++)
+      lv_QR_canvas_buffer=(lv_color_t *)(lv_mem_alloc(LV_CANVAS_BUF_SIZE_TRUE_COLOR(w,h)));
+    }
+    lv_obj_t *lv_QR_canvas=lv_canvas_create(obj);
+    lv_canvas_set_buffer(lv_QR_canvas,lv_QR_canvas_buffer,w,h,LV_IMG_CF_TRUE_COLOR);
+    lv_canvas_fill_bg(lv_QR_canvas, lv_palette_lighten(LV_PALETTE_GREY, 3), LV_OPA_COVER);
+    lv_obj_align_to(lv_QR_canvas,lv_SN_label,LV_ALIGN_OUT_TOP_MID,0,0);/**/
+
+    lv_color_t bg_color=lv_color_hex3(0xFFF);
+    lv_color_t fg_color=lv_color_hex3(0x000);
+
+    uint8_t qrcode[qrcodegen_BUFFER_LEN_MAX];
+    uint8_t tempBuffer[qrcodegen_BUFFER_LEN_MAX];
+    bool qrSuc=qrcodegen_encodeText(
+      SerialNumber.c_str(),
+      tempBuffer,
+      qrcode,
+      qrcodegen_Ecc_LOW,
+      qrcodegen_VERSION_MIN,
+      qrcodegen_VERSION_MAX,
+      qrcodegen_Mask_AUTO,
+      true
+    );
+    if(qrSuc)
+    {
+      int qrSize=qrcodegen_getSize(qrcode);
+      int markWidth=w/qrSize;
+      int markHeight=h/qrSize;
+      lv_draw_rect_dsc_t onDsc;
+      lv_draw_rect_dsc_t offDsc;
+      lv_draw_rect_dsc_init(&onDsc);
+      lv_draw_rect_dsc_init(&offDsc);
+      onDsc.bg_color=fg_color;
+      offDsc.bg_color=bg_color;
+      onDsc.bg_opa=255;
+      offDsc.bg_opa=255;
+      onDsc.border_color=fg_color;
+      offDsc.border_color=bg_color;
+      onDsc.border_width=0;
+      offDsc.border_width=0;
+      for(int y=0;y<qrSize;y++)
       {
-        bool mark=qrcodegen_getModule(qrcode,x,y);
-        if(mark)
+        for(int x=0;x<qrSize;x++)
         {
-          lv_canvas_draw_rect(lv_QR_canvas,x*markWidth,y*markHeight,markWidth,markHeight,&onDsc);
-        }
-        else
-        {
-          lv_canvas_draw_rect(lv_QR_canvas,x*markWidth,y*markHeight,markWidth,markHeight,&offDsc);
+          bool mark=qrcodegen_getModule(qrcode,x,y);
+          if(mark)
+          {
+            lv_canvas_draw_rect(lv_QR_canvas,x*markWidth,y*markHeight,markWidth,markHeight,&onDsc);
+          }
+          else
+          {
+            lv_canvas_draw_rect(lv_QR_canvas,x*markWidth,y*markHeight,markWidth,markHeight,&offDsc);
+          }
         }
       }
     }
   }
+
   
   /*lv_obj_t *lv_SN_qrcode=lv_qrcode_create(obj,105,fg_color,bg_color);
   lv_qrcode_update(lv_SN_qrcode, SerialNumber.c_str(), SerialNumber.length());
