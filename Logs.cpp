@@ -78,6 +78,31 @@ void DataLog(const String &Text)
   }
 }
 //------------------------------------------------------------------------------------------
+String uriEncode(const String &Text)
+{
+  String Res,CText=Text;
+  char c;
+  for(int i=0;i<CText.length();i++)
+  {
+    c=CText.charAt(i);
+    if((c<'0' || (c>'9' && c<'A') || (c>'Z' && c<'a') || c>'z') && c!='$' && c!='-' && c!='_' && c!='.' && c!='+' && c!='!' && c!='*' && c!='\'' && c!='(' && c!=')' && c!=',' && c!='?' && c!='/' && c!='~')
+    {
+      int narf=(unsigned char)(c);
+      String AA=String(narf,16);
+      if(AA.length()<2)
+      {
+        AA="0"+AA;
+      }
+      Res+="%"+AA;
+    }
+    else
+    {
+      Res+=c;
+    }
+  }
+  return Res;
+}
+//------------------------------------------------------------------------------------------
 void SendLogs(const String &Server)
 {
   //usb.rename("/usb/agsmac.log","/usb/agsmac_topush.log");

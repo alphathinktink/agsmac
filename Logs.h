@@ -8,4 +8,5 @@ using namespace arduino;
 //------------------------------------------------------------------------------------------
 void DataLogStart(void);
 void DataLog(const String &Text);
+String uriEncode(const String &Text);
 //------------------------------------------------------------------------------------------

@@ -41,6 +41,8 @@ enum WiFi_IP_Method_enum_t{WiFi_IP_Method_DHCP=0,WiFi_IP_Method_Static=1};
 static String Debug_EventCodeToString(lv_event_code_t code);
 constexpr unsigned long printInterval { 1000 };
 unsigned long printNow {};
+constexpr unsigned long touchInterval { 1000*60*2 };//every 2 minutes touch server
+unsigned long touchNow {};
 String timeServer("pool.ntp.org");
 
 bool destroySetting(const String &Key)
@@ -1461,6 +1463,8 @@ void DisplayMainStatusPanel(lv_obj_t *obj)
 
 void setup() {
   Serial.begin(115200);
+  DataLogStart();
+  DataLog("Start");
   delay(1000);
 
   String Temp=loadStringSetting("WiFi_encryptionType");
@@ -1491,7 +1495,6 @@ void setup() {
   
   Display.begin();
   TouchDetector.begin();
-  DataLogStart();
 
   /* Create a container with grid 1x1 */
   static lv_coord_t col_dsc[] = {755, 755, LV_GRID_TEMPLATE_LAST};
@@ -1513,7 +1516,6 @@ void setup() {
 
   DisplayWiFiConnectingPanel(obj);
 
-  DataLog("Start");
   String SN=GetSerialNumber();
   DataLog("SN: "+SN);
 
@@ -1523,7 +1525,8 @@ void setup() {
 void loop() { 
   /* Feed LVGL engine */
   lv_timer_handler();
-  if(millis()>printNow)
+  unsigned long t=millis();
+  if(t>printNow)
   {
     if(DateTimeDisplay_lbl!=NULL)
     {
@@ -1533,11 +1536,66 @@ void loop() {
     WiFi_status=WiFi.status();
     if(WiFi_status==WL_CONNECTION_LOST)
     {
+      DataLog("Detected lost WiFi connection.");
       DisplayWiFiConnectingPanel(Display_obj);
       DisplayMainStatusPanel(Display_obj);
     }
-    //
-    printNow = millis() + printInterval;
+    printNow = t + printInterval;
+  }
+  if(t>touchNow)
+  {
+    WiFi_status=WiFi.status();
+    if(WiFi_status==WL_CONNECTED)
+    {
+      DataLog("Touch start.");
+      String HTTP_Head="HEAD / HTTP/1.1\r\nHost: www.cicdevserve.com\r\nUser-Agent: BogProg Agsmac v0.0 (Mozilla Compatible)\r\nConnection: close\r\n\r\n";
+      String HTTP_Reply="";
+      unsigned int Timeout=2000;//2 second timeout
+      if(WiFi_client.connect("www.cicdevserve.com",80))
+      {
+        if(WiFi_client.write(HTTP_Head.c_str()))
+        {
+          while(WiFi_client.connected() && Timeout>0)
+          {
+            int toRead=WiFi_client.available();
+            if(toRead>0)
+            {
+              char *buffer=new char[toRead+1];
+              size_t ret=WiFi_client.readBytes(buffer,toRead);
+              buffer[ret]=0;
+              HTTP_Reply+=String(buffer);
+              delete [] buffer;
+              toRead=WiFi_client.available();
+            }
+            delay(100);
+            Timeout-=100;
+          }
+          WiFi_client.flush();
+          WiFi_client.stop();
+          if(Timeout>0)
+          {
+            HTTP_Reply=uriEncode(HTTP_Reply);
+            Serial.println("Touch response received. R="+HTTP_Reply);
+            DataLog("Touch response received. R="+HTTP_Reply);
+          }
+          else
+          {
+            DataLog("Touch response timeout.");
+            Serial.println("Touch response timeout.");
+          }
+        }
+        else
+        {
+          DataLog("Touch failed, send(write) unsuccessful.");
+        }
+      }
+      else
+      {
+        DataLog("Touch failed, cannot connect to server.");
+      }
+      DataLog("Touch end");
+    }
+    touchNow = t + touchInterval;
   }
 }
 
