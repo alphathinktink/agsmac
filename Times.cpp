@@ -23,17 +23,24 @@ String getLocaltime(void)
   return Res;
 }
 //------------------------------------------------------------------------------------------
-void setNtpTime(const String &timeServer)
+bool setNtpTime(const String &timeServer)
 {
   Udp.begin(localPort);
-  sendNTPpacket(timeServer.c_str());
+  unsigned long res=sendNTPpacket(timeServer.c_str());
+  if(res==0)
+  {
+    Udp.stop();
+    return false;
+  }
   for(int i=0;i<1000;i+=100)
   {
     lv_timer_handler();
     delay(100);
   }
-  parseNtpPacket();
+  res=parseNtpPacket();
   Udp.stop();
+  if(res==0)return false;
+  return true;
 }
 //------------------------------------------------------------------------------------------
 unsigned long sendNTPpacket(const char * address)
@@ -49,9 +56,15 @@ unsigned long sendNTPpacket(const char * address)
   packetBuffer[14] = 49;
   packetBuffer[15] = 52;
 
-  Udp.beginPacket(address, 123); // NTP requests are to port 123
-  Udp.write(packetBuffer, NTP_PACKET_SIZE);
-  Udp.endPacket();
+  if(Udp.beginPacket(address, 123)==0)return 0; // NTP requests are to port 123
+  if(Udp.write(packetBuffer, NTP_PACKET_SIZE)==0)
+  {
+    Udp.clearWriteError();
+    Udp.endPacket();
+    return 0;
+  }
+  if(Udp.endPacket()==0)return 0;
+  return 1;
 }
 //------------------------------------------------------------------------------------------
 unsigned long parseNtpPacket(void)

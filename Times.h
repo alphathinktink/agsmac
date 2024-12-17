@@ -7,7 +7,7 @@
 using namespace arduino;
 //------------------------------------------------------------------------------------------
 String getLocaltime(void);
-void setNtpTime(const String &timeServer);
+bool setNtpTime(const String &timeServer);
 unsigned long sendNTPpacket(const char * address);
 unsigned long parseNtpPacket(void);
 //------------------------------------------------------------------------------------------
