@@ -1,6 +1,7 @@
 //------------------------------------------------------------------------------------------
 // BUSYBomb.cpp
 #include "BUSYBomb.h"
+#include "Wire.h"
 #include "Arduino_GigaDisplay.h" // Include the GigaDisplay library
 #include "GigaDisplayRGB.h"
 //------------------------------------------------------------------------------------------
