@@ -41,9 +41,10 @@ enum WiFi_IP_Method_enum_t{WiFi_IP_Method_DHCP=0,WiFi_IP_Method_Static=1};
 static String Debug_EventCodeToString(lv_event_code_t code);
 constexpr unsigned long printInterval { 1000 };
 unsigned long printNow {};
+String timeServer("pool.ntp.org");
 constexpr unsigned long touchInterval { 1000*60*2 };//every 2 minutes touch server
 unsigned long touchNow {};
-String timeServer("pool.ntp.org");
+String touchHead="HEAD / HTTP/1.1\r\nHost: www.cicdevserve.com\r\nUser-Agent: BogProg Agsmac v0.0 (Mozilla Compatible)\r\nConnection: close\r\n\r\n";
 
 bool destroySetting(const String &Key)
 {
@@ -1548,7 +1549,7 @@ void loop() {
     if(WiFi_status==WL_CONNECTED)
     {
       DataLog("Touch start.");
-      String HTTP_Head="HEAD / HTTP/1.1\r\nHost: www.cicdevserve.com\r\nUser-Agent: BogProg Agsmac v0.0 (Mozilla Compatible)\r\nConnection: close\r\n\r\n";
+      #define HTTP_Head touchHead
       String HTTP_Reply="";
       unsigned int Timeout=2000;//2 second timeout
       if(WiFi_client.connect("www.cicdevserve.com",80))
@@ -1593,6 +1594,7 @@ void loop() {
       {
         DataLog("Touch failed, cannot connect to server.");
       }
+      #undef HTTP_Head
       DataLog("Touch end");
     }
     touchNow = t + touchInterval;

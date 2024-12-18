@@ -15,94 +15,121 @@ volatile bool usb_mounted=false;
 //------------------------------------------------------------------------------------------
 void DataLogStart(void)
 {
-  pinMode(PA_15, OUTPUT); //enable the USB-A port
+  const unsigned int maxRetries = 5; // Maximum retries
+  const unsigned int delayPerRetry = 100; // Delay per retry in ms
+  unsigned int retries = 0;
+
+  pinMode(PA_15, OUTPUT); // Enable the USB-A port
   digitalWrite(PA_15, HIGH);
-  int err;
-  unsigned int timeout=2000;
-  while(!msd.connect() && timeout>0)
+
+  // Attempt to connect to the USB drive
+  while (!msd.connect() && retries < maxRetries)
   {
-    lv_timer_handler();
-    delay(100);
-    timeout-=100;
+    lv_timer_handler(); // Handle GUI updates
+    delay(delayPerRetry);
+    retries++;
   }
-  if(timeout<=0)
+
+  if (retries >= maxRetries)
   {
+    Serial.println("DataLogStart: USB connection timeout.");
+    return; // Exit early if no connection
+  }
+
+  // Reset retries for the next phase
+  retries = 0;
+
+  // Wait for the device to be fully connected
+  while (!msd.connected() && retries < maxRetries)
+  {
+    lv_timer_handler(); // Handle GUI updates
+    delay(delayPerRetry);
+    retries++;
+  }
+
+  if (retries >= maxRetries)
+  {
+    Serial.println("DataLogStart: USB device failed to connect.");
+    return; // Exit early if still not connected
+  }
+
+  // Attempt to mount the USB file system
+  if (usb.mount(&msd) != 0)
+  {
+    Serial.println("DataLogStart: Failed to mount USB file system.");
     return;
   }
-  timeout=2000;
-  while (!msd.connected() && timeout>0) {
-    lv_timer_handler();
-    delay(500);
-    timeout-=500;
-  }
-  if(timeout<=0)
-  {
-    return;
-  }
-  err = usb.mount(&msd);
-  if (err) {
-    return;
-  }
-  usb_mounted=true;
+
+  usb_mounted = true;
+  Serial.println("DataLogStart: USB file system mounted successfully.");
 }
 //------------------------------------------------------------------------------------------
 void DataLog(const String &Text)
 {
-  if(!usb_mounted)
+  Serial.println("DataLog: Entered");
+  if (!usb_mounted)
   {
     DataLogStart();
-    if(!usb_mounted)
+    if (!usb_mounted)
     {
+      Serial.println("USB not mounted; aborting log.");
       return;
     }
-  };
-  int err;
-  mbed::fs_file_t file;
-  struct dirent *ent;
-  int dirIndex = 0;
-  int res = 0;
-  String CurTime=getLocaltime();
-  String Line=CurTime+"\t"+Text+"\n";
+  }
+
+  String CurTime = getLocaltime();
+  String Line;
+  Line.reserve(CurTime.length() + Text.length() + 3); // Preallocate memory
+  Line += CurTime;
+  Line += "\t";
+  Line += Text;
+  Line += "\n";
+
   FILE *f = fopen("/usb/agsmac.log", "a+");
-  if(f==NULL)
+  if (f == NULL)
   {
+    Serial.println("Failed to open log file.");
     return;
   }
-  fflush(stdout);
-  fseek(f,0,SEEK_END);
-  fprintf(f, Line.c_str());
-  fflush(stdout);
-  err = fclose(f);
-  if (err < 0) {
-  } else {
+  size_t bytesWritten = fprintf(f, "%s", Line.c_str());
+  if (bytesWritten < Line.length())
+  {
+    Serial.println("Failed to write full log entry.");
   }
+  if (fflush(f) != 0)
+  {
+    Serial.println("Failed to flush log file.");
+  }
+  if (fclose(f) != 0)
+  {
+    Serial.println("Failed to close log file.");
+  }
+  Serial.println("DataLog: Completed");
 }
 //------------------------------------------------------------------------------------------
 String uriEncode(const String &Text)
 {
-  String Res,CText=Text;
-  char c;
-  for(int i=0;i<CText.length();i++)
+  const char *safeChars = "$-_.+!*'(),?/~"; // Allowed characters
+  String Res;
+  char buffer[4]; // Buffer for percent-encoding
+  
+  for (size_t i = 0; i < Text.length(); i++)
   {
-    c=CText.charAt(i);
-    if((c<'0' || (c>'9' && c<'A') || (c>'Z' && c<'a') || c>'z') && c!='$' && c!='-' && c!='_' && c!='.' && c!='+' && c!='!' && c!='*' && c!='\'' && c!='(' && c!=')' && c!=',' && c!='?' && c!='/' && c!='~')
+    char c = Text.charAt(i);
+    // Check if the character is alphanumeric or a safe character
+    if (isalnum(c) || strchr(safeChars, c))
     {
-      int narf=(unsigned char)(c);
-      String AA=String(narf,16);
-      if(AA.length()<2)
-      {
-        AA="0"+AA;
-      }
-      Res+="%"+AA;
+      Res += c; // Append safe character as-is
     }
     else
     {
-      Res+=c;
+      // Percent-encode the character
+      snprintf(buffer, sizeof(buffer), "%%%02X", (unsigned char)c);
+      Res += buffer;
     }
   }
   return Res;
-}
-//------------------------------------------------------------------------------------------
+}//------------------------------------------------------------------------------------------
 void SendLogs(const String &Server)
 {
   //usb.rename("/usb/agsmac.log","/usb/agsmac_topush.log");
