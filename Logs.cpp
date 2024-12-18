@@ -8,6 +8,7 @@
 #include "Times.h"
 #include <WiFi.h>
 #include <WiFiSSLClient.h>
+#include "BUSYBomb.h"
 //------------------------------------------------------------------------------------------
 USBHostMSD msd;
 mbed::FATFileSystem usb("usb");
@@ -15,6 +16,7 @@ volatile bool usb_mounted=false;
 //------------------------------------------------------------------------------------------
 void DataLogStart(void)
 {
+  BUSYBomb
   const unsigned int maxRetries = 5; // Maximum retries
   const unsigned int delayPerRetry = 100; // Delay per retry in ms
   unsigned int retries = 0;
@@ -66,6 +68,7 @@ void DataLogStart(void)
 //------------------------------------------------------------------------------------------
 void DataLog(const String &Text)
 {
+  BUSYBomb
   Serial.println("DataLog: Entered");
   if (!usb_mounted)
   {
@@ -96,9 +99,10 @@ void DataLog(const String &Text)
   {
     Serial.println("Failed to write full log entry.");
   }
-  if (fflush(f) != 0)
+  int flushRes=fflush(f);
+  if (flushRes != 0)
   {
-    Serial.println("Failed to flush log file.");
+    Serial.println("Failed to flush log file: "+String(flushRes,HEX));
   }
   if (fclose(f) != 0)
   {
