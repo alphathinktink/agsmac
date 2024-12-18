@@ -1,7 +1,7 @@
 //------------------------------------------------------------------------------------------
 // BUSYBomb.cpp
 #include "BUSYBomb.h"
-#include <Arduino_GigaDisplay.h> // Include the GigaDisplay library
+#include "Arduino_GigaDisplay.h" // Include the GigaDisplay library
 //------------------------------------------------------------------------------------------
 
 int _BUSYBomb::counter = 0; // Initialize static counter
