@@ -22,6 +22,8 @@ void DataLogStart(void)
   unsigned int retries = 0;
 
   pinMode(PA_15, OUTPUT); // Enable the USB-A port
+  msd.deinit();
+  delay(200);
   digitalWrite(PA_15, LOW);
   usb_mounted=false;
   delay(200);
