@@ -17,7 +17,7 @@ volatile bool usb_mounted=false;
 void DataLogStart(void)
 {
   BUSYBomb
-  const unsigned int maxRetries = 3; // Maximum retries
+  const unsigned int maxRetries = 7; // Maximum retries
   const unsigned int delayPerRetry = 25; // Delay per retry in ms
   unsigned int retries = 0;
 
@@ -103,6 +103,7 @@ void DataLog(const String &Text)
   if (f == NULL)
   {
     Serial.println("Failed to open log file.");
+    usb_mounted=false;
     return;
   }
   size_t bytesWritten = fprintf(f, "%s", Line.c_str());
@@ -113,7 +114,7 @@ void DataLog(const String &Text)
   int flushRes=fflush(f);
   if (flushRes != 0)
   {
-    Serial.println("Failed to flush log file: "+String(flushRes,HEX));
+    Serial.println("Failed to flush log file: 0x"+String(flushRes,HEX));
   }
   if (fclose(f) != 0)
   {

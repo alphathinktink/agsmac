@@ -42,7 +42,7 @@ static String Debug_EventCodeToString(lv_event_code_t code);
 constexpr unsigned long printInterval { 1000 };
 unsigned long printNow {};
 String timeServer("pool.ntp.org");
-constexpr unsigned long touchInterval { 1000*60*2 };//every 2 minutes touch server
+constexpr unsigned long touchInterval { 1000*60*0.5 };//every 1/2 minute touch server
 unsigned long touchNow {};
 String touchHead="HEAD / HTTP/1.1\r\nHost: www.cicdevserve.com\r\nUser-Agent: BogProg Agsmac v0.0 (Mozilla Compatible)\r\nConnection: close\r\n\r\n";
 
@@ -1549,6 +1549,7 @@ void loop() {
     WiFi_status=WiFi.status();
     if(WiFi_status==WL_CONNECTED)
     {
+      Serial.println("Touch start.");
       DataLog("Touch start.");
       #define HTTP_Head touchHead
       String HTTP_Reply="";
@@ -1596,7 +1597,8 @@ void loop() {
         DataLog("Touch failed, cannot connect to server.");
       }
       #undef HTTP_Head
-      DataLog("Touch end");
+      Serial.println("Touch end.");
+      DataLog("Touch end.");
     }
     touchNow = t + touchInterval;
   }
