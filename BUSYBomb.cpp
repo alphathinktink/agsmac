@@ -7,7 +7,7 @@
 //------------------------------------------------------------------------------------------
 
 int _BUSYBomb::counter = 0; // Initialize static counter
-GigaDisplayRGB rgb; // Initialize the RGB controller
+GigaDisplayRGB _BUSYBomb::rgb; // Initialize the RGB controller
 
 //------------------------------------------------------------------------------------------
 _BUSYBomb::_BUSYBomb()
