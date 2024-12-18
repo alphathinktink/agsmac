@@ -1466,6 +1466,7 @@ void setup() {
   Serial.begin(115200);
   DataLogStart();
   DataLog("Start");
+  Serial.println("Start");
   delay(1000);
 
   String Temp=loadStringSetting("WiFi_encryptionType");

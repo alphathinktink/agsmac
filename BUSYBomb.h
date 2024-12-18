@@ -9,9 +9,6 @@
 class _BUSYBomb
 {
 private:
-    static int counter; // Shared counter to track active instances
-    static GigaDisplayRGB rgb; // RGB LED controller object
-
     void turnOnLED();
     void turnOffLED();
 
@@ -23,7 +20,7 @@ public:
 // Generate a unique name using the __LINE__ macro
 #define __BUSYBomb(line) __BUSYBomb##line
 #define __BUSYBombUnique(line) __BUSYBomb(line)
-#define BUSYBomb _BUSYBomb __BUSYBombUnique(__LINE__)
+#define BUSYBomb _BUSYBomb __BUSYBombUnique(__LINE__);
 //------------------------------------------------------------------------------------------
 #endif // BUSYBOMB_H
 //------------------------------------------------------------------------------------------

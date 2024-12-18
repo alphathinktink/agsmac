@@ -17,11 +17,15 @@ volatile bool usb_mounted=false;
 void DataLogStart(void)
 {
   BUSYBomb
-  const unsigned int maxRetries = 5; // Maximum retries
-  const unsigned int delayPerRetry = 100; // Delay per retry in ms
+  const unsigned int maxRetries = 3; // Maximum retries
+  const unsigned int delayPerRetry = 25; // Delay per retry in ms
   unsigned int retries = 0;
 
   pinMode(PA_15, OUTPUT); // Enable the USB-A port
+  digitalWrite(PA_15, LOW);
+  usb_mounted=false;
+  delay(200);
+  msd.deinit();
   digitalWrite(PA_15, HIGH);
 
   // Attempt to connect to the USB drive
@@ -87,6 +91,13 @@ void DataLog(const String &Text)
   Line += "\t";
   Line += Text;
   Line += "\n";
+
+  if (!msd.connected())
+  {
+      Serial.println("USB drive disconnected. Skipping log operation.");
+      usb_mounted = false;
+      return;
+  }
 
   FILE *f = fopen("/usb/agsmac.log", "a+");
   if (f == NULL)

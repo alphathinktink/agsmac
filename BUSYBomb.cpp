@@ -1,13 +1,11 @@
 //------------------------------------------------------------------------------------------
 // BUSYBomb.cpp
 #include "BUSYBomb.h"
-#include "Wire.h"
 #include "Arduino_GigaDisplay.h" // Include the GigaDisplay library
-#include "GigaDisplayRGB.h"
 //------------------------------------------------------------------------------------------
 
-int _BUSYBomb::counter = 0; // Initialize static counter
-GigaDisplayRGB _BUSYBomb::rgb; // Initialize the RGB controller
+static int counter = 0; // Initialize static counter
+static GigaDisplayRGB rgb; // Initialize the RGB controller
 
 //------------------------------------------------------------------------------------------
 _BUSYBomb::_BUSYBomb()
